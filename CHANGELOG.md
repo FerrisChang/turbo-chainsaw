@@ -88,4 +88,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - N/A
 
 ### Security
+- N/A
+
+## [0.2.2] - 2024-04-21
+
+### Added
+- New CardComponent for displaying trading cards
+  - Support for multiple card games (Pokemon, Yugioh, Magic, Lorcana, Digimon)
+  - Responsive card design with hover effects
+  - Game-specific styling
+  - Input properties for card data
+
+### Changed
+- N/A
+
+### Deprecated
+- N/A
+
+### Removed
+- N/A
+
+### Fixed
+- N/A
+
+### Security
+- N/A
+
+## [0.2.3] - 2024-04-21
+
+### Added
+- New CompanyFullViewComponent for displaying detailed company information
+  - Comprehensive company profile display
+  - Company metrics and statistics
+  - Contact information section
+  - Social media links
+  - Responsive design with mobile optimization
+
+### Changed
+- Renamed CardComponent to CompanyFullViewComponent
+- Updated component structure to better suit company information display
+
+### Deprecated
+- N/A
+
+### Removed
+- N/A
+
+### Fixed
+- N/A
+
+### Security
 - N/A 
