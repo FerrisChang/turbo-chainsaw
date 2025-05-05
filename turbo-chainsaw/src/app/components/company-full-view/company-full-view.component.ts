@@ -3,44 +3,22 @@ import { BackendapiService } from '../backendapi.service';
 import { Task, DB_Country } from '../dashboard-view/dashboard-view.component';
 import { getCountryNameFromISO } from '../companies-view/companies-view.component';
 import { ActivatedRoute } from '@angular/router';
-import { CompanyPayload } from './companies-type';
-import { FormsModule } from '@angular/forms';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
-import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatNativeDateModule } from '@angular/material/core';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatCheckboxModule } from '@angular/material/checkbox';
-import { MatMenuModule } from '@angular/material/menu';
-import { MatPaginatorModule } from '@angular/material/paginator';
+import { CompanyFilterTotalPayload } from './companies-types';
+import { CompanyPayload } from './companies-types'
 
-// Interfaces
+
+
 interface Company {
-	cmpnyObjId: number;
-	hostCtryCmpnyIdTyp: string;
-	hostCtryCmpnyId: string;
-	aeoAccntNbr: string;
+	country: string;
+	name: string;
+	type: string;
+	mra_status: string;
+	origin: string;
+	destination: string;	
+	companyAddress : string;
+	containers: string;
+	monetaryValue: string; 
 	tin: string;
-	cmpnyNm: string;
-	aeoCertDt: Date;
-	aeoRecertDt: Date;
-	cmpnyUuid: string;
-	apprvlStusCd: string;
-	apprvlStusDttm: Date;
-	midVal: number;
-	isLtstInd: boolean;
-	st: string;
-	cmt: string;
-	entyTyp: string;
-	g2gCmpnyId: string;
-	rolList: string;
-	cntryCd: string;
-	crteDttm: Date;
-	updtDttm: Date;
-	usrAudit: string;
-	isLatest: boolean;
 };
 
 export interface CheckSelected {
@@ -51,76 +29,83 @@ export interface CheckSelected {
 	list?: CheckSelected[];
 };
 
-export interface SearchRecord {
+export interface searchRecord {
 	companyName: string;
 	companyG2GID: string;
 	selectedCountries: string[];
-	selectedMRAStatus: string[];
+	selectedMRAStatus: string[]
 }
 
 @Component({
   selector: 'app-company-full-view',
   templateUrl: './company-full-view.component.html',
-  styleUrls: ['./company-full-view.component.scss'],
-  standalone: true,
-  imports: [
-    FormsModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatSelectModule,
-    MatDatepickerModule,
-    MatNativeDateModule,
-    MatButtonModule,
-    MatIconModule,
-    MatCheckboxModule,
-    MatMenuModule,
-    MatPaginatorModule
-  ]
+  styleUrls: ['./company-full-view.component.scss']
 })
 export class CompanyFullViewComponent {
 
-	// Input properties
-	@Input() searchItems: SearchRecord = {
+	@Input() searchItems:searchRecord = {
 		companyName: '',
 		companyG2GID: '',
 		selectedCountries: [],
 		selectedMRAStatus: [],
 	};
 
-	// Form input properties
+	stringDate: string = '';
 	companyNameInput: string = '';
 	tinInput: string = '';
-	dateInput: string = '';
- 
-	// Component state
+	dateInput: Date = new Date(this.stringDate);
+  
 	hostCountry: string = "";
 	companiesList: Company[] = [];
 	
 	companyName = '';  
 	countryName = '';  
-	expandedCompanyinTable = '';
-	pageTotalLength = 0;
-	pageSize = 0;
 
-	// Country selection state
-	allComplete: boolean = false;
-	mainCountries: CheckSelected = {
-		name: 'All Countries',
-		IsoCd: 'All',
-		selected: false,
-		color: 'primary',  
-		list: [ ],
-	  };
+  	constructor( private backendApi: BackendapiService, private  route: ActivatedRoute ) {  
+    }
+    
+    
 
-	// MRA status selection state
-	allMRAComplete: boolean = false; 
+	getThisCountryNameFromISO(countryIso: string) {
+		return getCountryNameFromISO(countryIso);
+	}
+  
 
-	MRAList: CheckSelected = {
-		name: 'All MRA Status',
-		IsoCd: 'All',
-		selected: false,
-		color: 'primary',  
-		list: [
+	
+	
+	  allComplete: boolean = false;
+	
+	  updateAllComplete() {
+		this.allComplete = this.mainCountries.list != null && this.mainCountries.list.every(t => t.selected);
+	  }
+	
+	  someComplete(): boolean {
+		if (this.mainCountries.list == null) {
+		  return false;
+		}
+		return this.mainCountries.list.filter(t => t.selected).length > 0 && !this.allComplete;
+	  }
+	
+	  setAll(selected: boolean) {
+		this.allComplete = selected;
+		if (this.mainCountries.list == null) {
+		  return;
+		}
+		this.mainCountries.list.forEach(t => (t.selected = selected));
+	  }
+
+
+
+
+	  
+	  allMRAComplete: boolean = false; 
+	
+	  MRAList: CheckSelected = {
+		  name: 'All MRA Status',
+		  IsoCd: 'All',
+		  selected: false,
+		  color: 'primary',  
+		  list: [
 			{
 				name: 'Approved', 
 				IsoCd: '', 
@@ -139,77 +124,67 @@ export class CompanyFullViewComponent {
 				selected: true, 
 				color: 'primary'
 			}
-		],
-	};
-
-	// New form control properties
-	selectedStatus: string = '';
-	selectedCountries: string[] = [];
-
-	constructor( private backendApi: BackendapiService, private  route: ActivatedRoute ) {  
-	}
-    
-	getThisCountryNameFromISO(countryIso: string) {
-		return getCountryNameFromISO(countryIso);
-	}
-  
-	updateAllComplete() {
-		this.allComplete = this.mainCountries.list != null && this.mainCountries.list.every(t => t.selected);
-	}
-
-	someComplete(): boolean {
-		if (this.mainCountries.list == null) {
-			return false;
-		}
-		return this.mainCountries.list.filter(t => t.selected).length > 0 && !this.allComplete;
-	}
-
-	setAll(selected: boolean) {
-		this.allComplete = selected;
-		if (this.mainCountries.list == null) {
-			return;
-		}
-		this.mainCountries.list.forEach(t => (t.selected = selected));
-	}
-
-	updateAllCompleteMRA() {
+		  ],
+		};
+	
+	  updateAllCompleteMRA() {
 		this.allMRAComplete = this.MRAList.list != null && this.MRAList.list.every(t => t.selected);
-	}
-
-	someCompleteMRA(): boolean {
+	  }
+	
+	  someCompleteMRA(): boolean {
 		if (this.MRAList.list == null) {
-			return false;
+		  return false;
 		}
 		return this.MRAList.list.filter(t => t.selected).length > 0 && !this.allMRAComplete;
-	}
-
-	setAllMRA(selected: boolean) {
+	  }
+	
+	  setAllMRA(selected: boolean) {
 		this.allMRAComplete = selected;
 		if (this.MRAList.list == null) {
-			return;
+		  return;
 		}
 		this.MRAList.list.forEach(t => (t.selected = selected));
-	}
+	  }
 
-	getSelectedCountries(): string | undefined { 
-		return this.mainCountries.list?.filter(country=> country.selected ).map(country => country.name).join(', ');
-	}
+
+
+
 	  
-	getSelectedCountriesIsoCd(): string | undefined { 
-		return this.mainCountries.list?.filter(country=> country.selected ).map(country => country.IsoCd).join(', ');
-	}
 
-	isUSASelected(): boolean {
+
+
+	  
+	  getSelectedCountries(): string | undefined { 
+		return this.mainCountries.list?.filter(country=> country.selected ).map(country => country.name).join(', ');
+	  }
+	  
+	  getSelectedCountriesIsoCd(): string | undefined { 
+		return this.mainCountries.list?.filter(country=> country.selected ).map(country => country.IsoCd).join(', ');
+	  }
+
+
+	  isUSASelected(): boolean {
 		if (this.mainCountries.list == null) {
-			return false;
+		  return false;
 		}
 		if (this.mainCountries.list.filter(t => t.selected).length > 1 )
 			return false;
 
 		return this.mainCountries.list.some(t => { return (t.selected && t.name === 'United States') ? true : false }) ;
-	}
+	  }
 
-	ngOnInit()    { 
+	  
+	
+	mainCountries: CheckSelected = {
+		name: 'All Countries',
+		IsoCd: 'All',
+		selected: false,
+		color: 'primary',  
+		list: [ ],
+	  };
+
+    ngOnInit()    { 
+
 		let params = this.route.params.subscribe(params => {
 			
 			console.log(params);
@@ -237,27 +212,40 @@ export class CompanyFullViewComponent {
 			}	
 			this.startSearch();
 		});
-	}
+    }
 
+	pageTotalLength = 0;
+	pageSize = 0;
 	tablePageChange(event: any) {
 		console.log(event);
+
 	}
 
 	startSearch() {
 		console.log('startSearch');
 		console.log(this.getSelectedCountriesIsoCd());
 
+		//send a REST API with selected countries and other user entered values to get the list of companies matching the criteria
+		// placeholder till types format change happens
 		const filter = {
-			countries: this.selectedCountries.join(','),
-			mra: this.selectedStatus,
-			name: this.companyNameInput,
-			tin: this.tinInput,
-			date: this.dateInput
+			searchRequest: {
+				cmpny: {
+					cmpnyNm: this.companyNameInput,
+					tin: this.tinInput,
+					aeoCertDt: this.dateInput
+				},
+				cmpnyLoc: {
+					cntryCd: this.mainCountries.list?.filter(country=> country.selected ).map(country => country.IsoCd).join(',')
+				}
+			}
 		};
+
+
 
 		console.log(filter);
 		this.companiesList = [];
-		this.pageTotalLength = 0;
+		
+		this.pageTotalLength = 0; 
 
 		this.backendApi.getCompaniesByFilter(filter).subscribe((data: any) => {
 			console.log(data);
@@ -265,29 +253,16 @@ export class CompanyFullViewComponent {
 				let companiesCount = 0;
 				data.forEach( (element: any) => { 
 					this.companiesList.push({						
-							cmpnyObjId: element.cmpnyObjId,
-							hostCtryCmpnyIdTyp: element.hostCtryCmpnyIdTyp,
-							hostCtryCmpnyId: element.hostCtryCmpnyId,
-							aeoAccntNbr: element.aeoAccntNbr,
+							country: element.hostCountry,
+							name: element.name,
+							type: element.type,
+							mra_status: element.mra_status, 
+							companyAddress : element.companyAddress,//compAddr,
+							containers: element.containers,
+							monetaryValue: element.monetary_value,
+							origin: element.origin, 
+							destination: element.destination,
 							tin: element.tin,
-							cmpnyNm: element.cmpnyNm,
-							aeoCertDt: element.aeoCertDt,
-							aeoRecertDt: element.aeoRecertDt,
-							cmpnyUuid: element.cmpnyUuid,
-							apprvlStusCd: element.apprvlStusCd,
-							apprvlStusDttm: element.apprvlStusDttm,
-							midVal: element.midVal,
-							isLtstInd: element.isLtstInd,
-							st: element.st,
-							cmt: element.cmt,
-							entyTyp: element.entyTyp,
-							g2gCmpnyId: element.g2gCmpnyId,
-							rolList: element.rolList,
-							cntryCd: element.cntryCd,
-							crteDttm: element.crteDttm,
-							updtDttm: element.updtDttm,
-							usrAudit: element.usrAudit,
-							isLatest: element.isLatest
 					}); 
 					companiesCount++;
 				});
@@ -295,59 +270,38 @@ export class CompanyFullViewComponent {
 				this.pageTotalLength =  companiesCount;
 			}		 
 		});
-	}
-
-	showCompanyView(countryCode: string, companyName: string) {
-		this.closeCompanyView();
-		this.companyName = companyName;
-		this.countryName = countryCode;      
-	}
-	
-	closeCompanyView() {
-		this.companyName = '';
-		this.countryName = '';
-	}
-
-	selectCompaniesRow(company: string, tin: string) {
-		const rowId = `${company}-${tin}`;
-		if (this.expandedCompanyinTable === rowId) {
-			this.expandedCompanyinTable = '';
-			this.closeCompanyView();
-		} else {
-			this.expandedCompanyinTable = rowId;
-		}
+		
 	}
 
 	getCompanyDetails(company: CompanyPayload): string {
 		return `
-			Company Object ID: ${company.cmpnyObjId}
-			Host Country Company ID Type: ${company.hostCtryCmpnyIdTyp}
-			Host Country Company ID: ${company.hostCtryCmpnyId}
-			AEO Account Number: ${company.aeoAccntNbr}
-			TIN: ${company.tin}
-			Company Name: ${company.cmpnyNm}
-			AEO Cert Date: ${company.aeoCertDt}
-			AEO Recert Date: ${company.aeoRecertDt}
-			Company UUID: ${company.cmpnyUuid}
-			Approval Status Code: ${company.apprvlStusCd}
-			Approval Status DateTime: ${company.apprvlStusDttm}
-			Mid Value: ${company.midVal}
-			Is Latest: ${company.isLtstInd}
-			State: ${company.st}
-			Comment: ${company.cmt}
-			Entity Type: ${company.entyTyp}
-			G2G Company ID: ${company.g2gCmpnyId}
-			Role List: ${company.rolList}
-			Country Code: ${company.cntryCd}
-			Create DateTime: ${company.crteDttm}
-			Update DateTime: ${company.updtDttm}
-			User Audit: ${company.usrAudit}
-		`;
+		Company Object ID: ${company.cmpnyObjId}
+		Host Country Company ID Type: ${company.hostCtryCmpnyIdTyp}
+		`
 	}
 
-	displayCompanyInfo(company: CompanyPayload): void {
-		const companyInfo = this.getCompanyDetails(company);
-		// You can use this to display in a modal, tooltip, or any other UI element
-		console.log(companyInfo);
-	}
+    showCompanyView(countryName: string, companyName: string) {
+		this.closeCompanyView();
+      this.companyName = companyName;
+      this.countryName = countryName;      
+    }
+    
+    closeCompanyView() {
+      this.companyName = '';
+      this.countryName = '';
+    }
+
+	expandedCompanyinTable = '';
+    selectCompaniesRow(company: string, tin: string) {
+	  const rowId = `${company}-${tin}`
+      if (this.expandedCompanyinTable === rowId) {
+		this.expandedCompanyinTable = '';
+        this.closeCompanyView();
+      } else {
+		this.expandedCompanyinTable = rowId;
+	  }
+      
+    }
 }
+
+
