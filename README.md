@@ -1,4 +1,4 @@
-import { Component, Input, OnInit, ViewChild, AfterViewInit } from '@angular/core';
+import { Component, Input, OnInit, ViewChild, AfterViewInit, OnChanges, SimpleChanges } from '@angular/core';
 import { BackendapiService } from '../backendapi.service'; 
 import { Task, DB_Country } from '../dashboard-view/dashboard-view.component';
 import { ActivatedRoute } from '@angular/router';
@@ -56,7 +56,7 @@ export interface searchRecord {
   templateUrl: './company-full-view.component.html',
   styleUrls: ['./company-full-view.component.scss']
 })
-export class CompanyFullViewComponent implements OnInit, AfterViewInit {
+export class CompanyFullViewComponent implements OnInit, AfterViewInit, OnChanges {
 	// controls all default status of the forms
 	MRAList: MRARequestStatusInput[] = MRAList;
 	defaultSelectCountry: string[] = [];
@@ -206,17 +206,29 @@ export class CompanyFullViewComponent implements OnInit, AfterViewInit {
 		}
 	}
 
+	ngOnChanges(changes: SimpleChanges) {
+		if (changes['displayedCompanies']) {
+			console.log('Displayed companies changed:', this.displayedCompanies);
+		}
+	}
+
 	onPageChange(event: PageEvent) {
 		console.log('Page change event:', event);
 		this.pageSize = event.pageSize;
 		this.currentPage = event.pageIndex;
 		
-		// Update displayed companies based on new page size
+		// Force change detection by creating a new array reference
 		const startIndex = this.currentPage * this.pageSize;
 		const endIndex = Math.min(startIndex + this.pageSize, this._companiesList.length);
 		
 		// Create a new array reference to force change detection
-		this.displayedCompanies = [...this._companiesList.slice(startIndex, endIndex)];
+		const newDisplayedCompanies = this._companiesList.slice(startIndex, endIndex);
+		this.displayedCompanies = [...newDisplayedCompanies];
+		
+		// Force change detection
+		setTimeout(() => {
+			this.displayedCompanies = [...this.displayedCompanies];
+		});
 		
 		console.log('After page change:', {
 			pageSize: this.pageSize,
@@ -238,7 +250,13 @@ export class CompanyFullViewComponent implements OnInit, AfterViewInit {
 		const endIndex = Math.min(startIndex + this.pageSize, this._companiesList.length);
 		
 		// Create a new array reference to force change detection
-		this.displayedCompanies = [...this._companiesList.slice(startIndex, endIndex)];
+		const newDisplayedCompanies = this._companiesList.slice(startIndex, endIndex);
+		this.displayedCompanies = [...newDisplayedCompanies];
+		
+		// Force change detection
+		setTimeout(() => {
+			this.displayedCompanies = [...this.displayedCompanies];
+		});
 		
 		// Update paginator if it exists
 		if (this.paginator) {
