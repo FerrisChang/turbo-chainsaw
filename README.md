@@ -80,7 +80,6 @@ export class CompanyFullViewComponent implements OnInit, AfterViewInit {
 	}
   
 	hostCountry: string = "";
-	companiesList: CompanyOnMapView[] = [];
 
 	
 	companyName = '';  
@@ -198,14 +197,6 @@ export class CompanyFullViewComponent implements OnInit, AfterViewInit {
 			this.paginator.pageSize = this.pageSize;
 			this.paginator.pageSizeOptions = this.pageSizeOptions;
 			this.paginator.length = this.pageTotalLength;
-
-			// Subscribe to page changes
-			this.paginator.page.subscribe((event: PageEvent) => {
-				console.log('Page event:', event);
-				this.pageSize = event.pageSize;
-				this.currentPage = event.pageIndex;
-				this.updateDisplayedCompanies();
-			});
 		}
 	}
 
@@ -225,7 +216,8 @@ export class CompanyFullViewComponent implements OnInit, AfterViewInit {
 		const startIndex = this.currentPage * this.pageSize;
 		const endIndex = Math.min(startIndex + this.pageSize, this._companiesList.length);
 		
-		this.displayedCompanies = this._companiesList.slice(startIndex, endIndex);
+		// Create a new array to ensure change detection
+		this.displayedCompanies = [...this._companiesList.slice(startIndex, endIndex)];
 		
 		console.log('Pagination update:', {
 			totalItems: this._companiesList.length,
@@ -349,5 +341,7 @@ export class CompanyFullViewComponent implements OnInit, AfterViewInit {
       
     }
 }
+
+
 
 
