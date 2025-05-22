@@ -157,6 +157,7 @@ export class CompanyFullViewComponent implements OnInit, AfterViewInit {
 
   set companiesList(value: CompanyOnMapView[]) {
     this._companiesList = value;
+    this.pageTotalLength = value.length;
     this.updateDisplayedCompanies();
   }
 
@@ -197,6 +198,11 @@ export class CompanyFullViewComponent implements OnInit, AfterViewInit {
 			this.paginator.pageSize = this.pageSize;
 			this.paginator.pageSizeOptions = this.pageSizeOptions;
 			this.paginator.length = this.pageTotalLength;
+			
+			// Subscribe to page changes
+			this.paginator.page.subscribe(event => {
+				this.onPageChange(event);
+			});
 		}
 	}
 
@@ -205,14 +211,20 @@ export class CompanyFullViewComponent implements OnInit, AfterViewInit {
 		this.pageSize = event.pageSize;
 		this.currentPage = event.pageIndex;
 		
-		// Force change detection by creating a new array reference
-		this.displayedCompanies = [];
-		this.updateDisplayedCompanies();
+		// Update displayed companies based on new page size
+		const startIndex = this.currentPage * this.pageSize;
+		const endIndex = Math.min(startIndex + this.pageSize, this._companiesList.length);
+		
+		// Create a new array reference to force change detection
+		this.displayedCompanies = [...this._companiesList.slice(startIndex, endIndex)];
 		
 		console.log('After page change:', {
 			pageSize: this.pageSize,
 			currentPage: this.currentPage,
-			displayedCount: this.displayedCompanies.length
+			displayedCount: this.displayedCompanies.length,
+			totalItems: this._companiesList.length,
+			startIndex,
+			endIndex
 		});
 	}
 
@@ -226,8 +238,14 @@ export class CompanyFullViewComponent implements OnInit, AfterViewInit {
 		const endIndex = Math.min(startIndex + this.pageSize, this._companiesList.length);
 		
 		// Create a new array reference to force change detection
-		const newDisplayedCompanies = this._companiesList.slice(startIndex, endIndex);
-		this.displayedCompanies = [...newDisplayedCompanies];
+		this.displayedCompanies = [...this._companiesList.slice(startIndex, endIndex)];
+		
+		// Update paginator if it exists
+		if (this.paginator) {
+			this.paginator.length = this._companiesList.length;
+			this.paginator.pageSize = this.pageSize;
+			this.paginator.pageIndex = this.currentPage;
+		}
 		
 		console.log('Pagination update:', {
 			totalItems: this._companiesList.length,
