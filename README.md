@@ -204,7 +204,16 @@ export class CompanyFullViewComponent implements OnInit, AfterViewInit {
 		console.log('Page change event:', event);
 		this.pageSize = event.pageSize;
 		this.currentPage = event.pageIndex;
+		
+		// Force change detection by creating a new array reference
+		this.displayedCompanies = [];
 		this.updateDisplayedCompanies();
+		
+		console.log('After page change:', {
+			pageSize: this.pageSize,
+			currentPage: this.currentPage,
+			displayedCount: this.displayedCompanies.length
+		});
 	}
 
 	private updateDisplayedCompanies() {
@@ -216,8 +225,9 @@ export class CompanyFullViewComponent implements OnInit, AfterViewInit {
 		const startIndex = this.currentPage * this.pageSize;
 		const endIndex = Math.min(startIndex + this.pageSize, this._companiesList.length);
 		
-		// Create a new array to ensure change detection
-		this.displayedCompanies = [...this._companiesList.slice(startIndex, endIndex)];
+		// Create a new array reference to force change detection
+		const newDisplayedCompanies = this._companiesList.slice(startIndex, endIndex);
+		this.displayedCompanies = [...newDisplayedCompanies];
 		
 		console.log('Pagination update:', {
 			totalItems: this._companiesList.length,
@@ -341,7 +351,4 @@ export class CompanyFullViewComponent implements OnInit, AfterViewInit {
       
     }
 }
-
-
-
 
