@@ -1,7 +1,913 @@
-Distribution Of Company Statuses for a given AEO Profile 
-Should Probably Be A PI Chart
-PI Chart Distributed by Approval Status for MRA Companies in AEO Profile
-What is the data?
-MRA Companies List from the AEO Profile (mraCompanies - companies-view.component.ts) 
-What is the Pi Chart Divided By? 
-Approval Status
+import { Component, PipeTransform, ViewChild, ViewContainerRef } from '@angular/core';
+import { BackendapiService } from '../backendapi.service';
+import { Task, DB_Country } from '../dashboard-view/dashboard-view.component';
+import * as L from 'leaflet';
+import 'leaflet-polylinedecorator'; // import leaflet-arc here
+import { ThemePalette } from '@angular/material/core';
+import { countryCodes, countryGeoCoords } from '../data/countrycodes';
+import { CompanyMraDlgComponent } from '../company-mra-dlg/company-mra-dlg.component';
+import { CountryMraDlgComponent } from '../country-mra-dlg/country-mra-dlg.component';
+import {
+	MatDialog, MatDialogRef, MAT_DIALOG_DATA, MatDialogConfig,
+	MatDialogActions,
+	MatDialogClose,
+	MatDialogContent,
+	MatDialogTitle,
+} from '@angular/material/dialog';
+import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { Observable } from 'rxjs';
+import { map, startWith } from 'rxjs/operators';
+import { getLocaleDirection } from '@angular/common';
+import { JsonViewerComponent } from '../json-viewer/json-viewer.component';
+import { MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
+import { ChartEntry, Company, CompanyLocation, CompanyOnMapView } from '../company-full-view/companies-types';
+import { UtilsService } from '../services/utils.service';
+import { LoggingService } from '../services/logging.service';
+import { AeoProfile, JWPPartner } from './aeo-profile-types';
+import { LoadingService } from '../services/loading.service';
+
+
+
+
+
+const COMPANIES: CompanyOnMapView[] = [
+];
+
+export const mraCounts = [
+	{
+		"name": "Approved",
+		"value": 0
+	},
+	{
+		"name": "In Progress",
+		"value": 0
+	},
+	{
+		"name": "Rejected",
+		"value": 0
+	}
+];
+
+export const multi = [
+	{
+		"name": "Germany",
+		"series": [
+			{
+				"name": "2010",
+				"value": 7300000
+			},
+			{
+				"name": "2011",
+				"value": 8940000
+			}
+		]
+	},
+
+	{
+		"name": "USA",
+		"series": [
+			{
+				"name": "2010",
+				"value": 7870000
+			},
+			{
+				"name": "2011",
+				"value": 8270000
+			}
+		]
+	},
+
+	{
+		"name": "France",
+		"series": [
+			{
+				"name": "2010",
+				"value": 5000002
+			},
+			{
+				"name": "2011",
+				"value": 5800000
+			}
+		]
+	}
+];
+
+
+
+export interface GEO_Coordinate {
+	lat: number;
+	lon: number;
+}
+
+
+@Component({
+	selector: 'app-companies-view',
+	templateUrl: './companies-view.component.html',
+	styleUrls: ['./companies-view.component.scss']
+})
+
+export class CompaniesViewComponent {
+
+	constructor(private backendApi: BackendapiService,
+		public dialogModel: MatDialog,
+		private loading: LoadingService,
+		private utils: UtilsService,
+		private logger: LoggingService) {
+		Object.assign(this, { mraCounts });
+	}
+	countriesForm: FormControl = new FormControl('');
+	currentSelectedCountry: string = '';
+	hostCountryIso: string = 'US';
+	hostCountry: string = this.utils.translateCodeToCountry(this.hostCountryIso);
+
+	mraDialog!: MatDialogRef<CompanyMraDlgComponent> | MatDialogRef<JsonViewerComponent>;
+	countryDialog!: MatDialogRef<CountryMraDlgComponent>;
+	dialogConfig!: MatDialogConfig;
+	dlgCloseStatus = '';
+
+	openDialog(countryName: string) {
+		this.countryDialog = this.dialogModel.open(CountryMraDlgComponent, {
+			height: '70%',
+			width: '70%',
+			data: { countryName: this.utils.translateCodeToCountry(countryName), closeStatus: this.dlgCloseStatus }
+		});
+		this.countryDialog.afterClosed().subscribe(result => {
+			console.log(`Dialog result: ${result}`);
+			console.log(this.dlgCloseStatus);
+		});
+	}
+	openAeoProfile(country: string) {
+		console.log("Opening Aeo Profile for: ", country);
+		this.countriesForm.setValue(country);
+		this.processSelectedCountry(this.mainCountries.find((mainCountry) => {
+			return this.utils.translateCodeToCountry(mainCountry.ctryIsoCd) === country
+		}));
+	}
+
+	openCompanyDialog(companyName: string) {
+		this.mraDialog = this.dialogModel.open(CompanyMraDlgComponent, {
+			height: '70%',
+			width: '70%',
+			data: { companyName: companyName, countryName: this.getSelectedCountryCode(), closeStatus: this.dlgCloseStatus }
+		});
+		this.mraDialog.afterClosed().subscribe(result => {
+			console.log(`Dialog result: ${result}`);
+			console.log(this.dlgCloseStatus);
+		});
+	}
+	// json is viewed here rohit
+	openJSONDialog() {
+		this.mraDialog = this.dialogModel.open(JsonViewerComponent, {
+			height: '70%',
+			width: '70%',
+			data: { json: JSON.stringify(this.selectedCountry) }
+		});
+		this.mraDialog.afterClosed().subscribe(result => {
+			console.log(`Dialog result: ${result}`);
+			console.log(this.dlgCloseStatus);
+		})
+	}
+
+	selectedCountry?: AeoProfile;
+	companiesList = COMPANIES;
+	aeoCompanies: CompanyOnMapView[] = []
+	mraCompanies: CompanyOnMapView[] = []
+	private map: any;
+	mapHeight = 500;
+	animations: boolean = true;
+	mainCountries: AeoProfile[] = [];
+	companyCountryChart: ChartEntry[] = []
+
+	enlargeMap() {
+		//<button mat-menu-item (click)="enlargeMap()">Enlarge Map</button>
+		this.mapHeight = 700;
+	}
+
+	private initMap(): void {
+		this.map = L.map('map', {
+			center: [25.5, 10],
+			zoom: 2,
+			attributionControl: false
+		});
+
+		const southWest = L.latLng(-89.98155760646617, -180),
+			northEast = L.latLng(89.99346179538875, 180);
+		const bounds = L.latLngBounds(southWest, northEast);
+		this.map.setMaxBounds(bounds);
+
+		const tiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+			maxZoom: 18,
+			minZoom: 2,
+			attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+		});
+
+		tiles.addTo(this.map);
+	}
+
+	chipSelectionChange(countryName: string) {
+		console.log('chipSelectionChange ' + countryName);
+		console.log(this.mainCountries);
+		this.mainCountries.forEach(country => {
+			if (country.name === countryName)
+				country.selected = true;
+			else
+				country.selected = false;
+		})
+
+		//this.processSelectedCountry();
+	}
+	selectCountryOption(event: MatAutocompleteSelectedEvent) {
+		this.processSelectedCountry(
+			this.mainCountries.find(country => country.name === event.option.value));
+	}
+
+	labelFormatting(c: any) {
+		return `${(c.label)}`;
+	}
+
+
+	getCountryFullName(ISOCode: string): string {
+		return this.utils.translateCodeToCountry(ISOCode);
+	}
+	displayCountryInput(country: AeoProfile) {
+		return country.name;
+	}
+	companyHeaders: string[] = ['index', 'name', 'country', 'company_id', 'mra_status']
+	convertYearToString(year: string | null) {
+		if (year !== null) {
+			year = year.replaceAll(",", "");
+		}
+		return year;
+	}
+	processSelectedCountry(getCountry?: AeoProfile) {
+		console.log('processSelectedCountry', getCountry);
+		//const getCountry = this.mainCountries.find( (country: AeoProfile) => country.selected);
+		// the country information is binded here, rohit 
+		this.selectedCountry = getCountry;
+		this.currentSelectedCountry = getCountry?.name || '';
+		this.mraCounts = [{
+			"name": "Approved",
+			"value": 0
+		},
+		{
+			"name": "In Progress",
+			"value": 0
+		},
+		{
+			"name": "Rejected",
+			"value": 0
+		}];
+		this.mraCounter = {
+			approved: 0,
+			rejected: 0,
+			inprogress: 0,
+			max: 0
+		};
+		// loads mra companies
+		if (getCountry && getCountry.name.length > 1) {
+			//get the countries list for the selected country			
+			console.log('get the countries list for the selected country', getCountry);
+			const companyFilter = {
+				searchRequest: {
+					cmpny: {
+						cntryCd: getCountry.ctryIsoCd
+					},
+					cmpnyLoc: {}
+				}
+			} // searches on for mra companies
+			this.backendApi.getCompaniesWithAFilter2(companyFilter, { totalNumberOfElements: 0, totalPages: 0, currentPage: 0 }).subscribe(async (companies: any) => {
+				let countriesSelectedFromCompanies = new Map()
+				let companiesData: Company [] = companies; //check if g2g-api uses this nested property
+				// updates to the right companies data
+				this.mraCompanies = companiesData.map((company: Company, index: number) => {
+					// checking all the status
+					if (company.apprvlStusCd.includes('APPROVED')) {
+						this.mraCounter.approved++;
+					}
+					if (company.apprvlStusCd.includes('REJECTED'))
+						this.mraCounter.rejected++;
+					if (company.apprvlStusCd.includes('PENDING'))
+						this.mraCounter.inprogress++;
+					let locationToUse = company.cmpnyLocList.find((location: CompanyLocation) => { return location.isPrmryLoc })
+						|| company.cmpnyLocList[0] || {
+						cmpnyAddr: ''
+					};
+					let shipment = {
+						containers: 0,
+						monetaryValue: 0
+					} // TO-DO Shipment Data
+					// adds a tally of the country names
+					let countryName = this.utils.translateCodeToCountry(company.cntryCd)
+					let countryValue = countriesSelectedFromCompanies.get(countryName)
+					if (countryValue) {
+						countriesSelectedFromCompanies.set(countryName, countryValue + 1)
+					}
+					else {
+						countriesSelectedFromCompanies.set(countryName, 1);
+					}
+
+					return {
+						id: index,
+						hostCountry: company.cntryCd || getCountry.ctryIsoCd,//countryData.ctry,
+						name: company.cmpnyNm || "", //countryData.cmpnyNm, 
+						mra_status: {
+							class: company.apprvlStusCd.toLowerCase().includes('approved') ? 'approved' :
+								company.apprvlStusCd.toLowerCase().includes('rejected') ? 'rejected' :
+									company.apprvlStusCd.toLowerCase().includes('pending') ? 'pending' : '',
+							value: company.apprvlStusCd || ""
+						},
+						companyAddress: locationToUse.cmpnyAddr || "",//compAddr,
+						address: this.utils.convertLocationConversion(locationToUse, 'company'),
+						containers: shipment.containers || 0,
+						monetaryValue: shipment.monetaryValue || 0,
+						companyID: {
+							idType: company.hostCtryCmpnyIdTyp || "",
+							id: company.hostCtryCmpnyId || ""
+						},
+						g2gID: company.g2gCmpnyId || "",
+						roleList: company.rolList?.split(",") || [],
+						lastUpdated: company.updtDttm,
+						aeoCertDate: company.aeoCertDt,
+						aeoLastCertDate: company.aeoRecertDt,
+						tin: company.tin || "",
+						latlon: [locationToUse.latud || 0, locationToUse.lngtud || 0], //await this.getLatLon(compAddr) ?? [0,0],
+						company: company
+					};
+				})
+				this.companyCountryChart = Array.from(countriesSelectedFromCompanies.entries()).map(([country, value]) => {
+					return {
+						name: country || this.selectedCountry || '',
+						value: value
+					}
+				})
+				console.log("Company Country Chart: ", this.companyCountryChart)
+				console.log("MRA Compaies: ", this.mraCompanies);
+				this.addCompanyMarkers();
+				this.addShippingMarkers();
+
+				this.mraCounter.max = this.mraCounter.approved > this.mraCounter.rejected ? this.mraCounter.approved : this.mraCounter.rejected;
+				this.mraCounter.max = this.mraCounter.max > this.mraCounter.inprogress ? this.mraCounter.max : this.mraCounter.inprogress;
+				this.mraCounts = [{
+					"name": "Approved",
+					"value": Number(this.mraCounter.approved)
+				},
+				{
+					"name": "In Progress",
+					"value": Number(this.mraCounter.inprogress)
+				},
+				{
+					"name": "Rejected",
+					"value": Number(this.mraCounter.rejected)
+				}];
+			});
+
+			// populate map with markers on country
+
+			this.removeMapMarkers();
+			this.addMarker(getCountry.name, getCountry.name, 'select', getCountry);
+
+			getCountry.jwpPrtnrList.forEach((jwp: JWPPartner) => {
+				const countryName = this.utils.translateCodeToCountry(jwp.countryCode);
+				// makes sure that the main country marker isn't being overwritten
+				if (getCountry.name !== countryName) {
+					this.addMarker(countryName, countryName, 'JWP', jwp);
+				}
+			})
+
+			getCountry.mraPrtnrList.forEach((mra: any) => {
+				const countryName = this.utils.translateCodeToCountry(mra.countryCode);
+				// makes sure that the main country marker isn't being overwritten
+				if (getCountry.name !== countryName) {
+					this.addMarker(countryName, countryName, 'MRA', mra);
+				}
+			})
+			//update stats 
+		}
+		else { // loads aeo companies
+			const companyFilter = {
+				searchRequest: {
+					cmpny: {
+						cntryCd: 'US'
+					},
+					cmpnyLoc: {}
+				}
+			} // searches on for mra companies
+			this.backendApi.getCompaniesWithAFilter2(companyFilter, { totalNumberOfElements: 0, totalPages: 0, currentPage: 0 }).subscribe(async (companies: any) => {
+				this.aeoCompanies = companies.map((company : Company, index : number)=> {
+					let locationToUse = company.cmpnyLocList.find((location: CompanyLocation) => { return location.isPrmryLoc })
+						|| company.cmpnyLocList[0] || {
+						cmpnyAddr: ''
+					};
+					return {
+						id: index,
+						hostCountry: company.cntryCd || "US",//countryData.ctry,
+						name: company.cmpnyNm || "", //countryData.cmpnyNm, 
+						mra_status: {
+							class: company.apprvlStusCd.toLowerCase().includes('approved') ? 'approved' :
+								company.apprvlStusCd.toLowerCase().includes('rejected') ? 'rejected' :
+									company.apprvlStusCd.toLowerCase().includes('pending') ? 'pending' : '',
+							value: company.apprvlStusCd || ""
+						},
+						companyAddress: locationToUse.cmpnyAddr || "",//compAddr,
+						address: this.utils.convertLocationConversion(locationToUse, 'company'),
+						containers: 0, // to be determined later
+						monetaryValue: 0, // to be determined later 
+						companyID: {
+							idType: company.hostCtryCmpnyIdTyp || "",
+							id: company.hostCtryCmpnyId || ""
+						},
+						g2gID: company.g2gCmpnyId || "",
+						roleList: company.rolList?.split(",") || [],
+						lastUpdated: company.updtDttm,
+						aeoCertDate: company.aeoCertDt,
+						aeoLastCertDate: company.aeoRecertDt,
+						tin: company.tin || "",
+						latlon: [locationToUse.latud || 0, locationToUse.lngtud || 0], //await this.getLatLon(compAddr) ?? [0,0],
+						company: company
+					};
+				})
+			})
+			//no country is selected - then display all participaating countries on the map
+			this.loadMainCountriesMarkers();
+			console.log("Main Countries: ", this.mainCountries);
+			// at the end of it, they add all the coords together 
+			console.log("Country Coords: ", this.logger.countryCoords);
+		}
+		this.searching = "";
+	}
+
+	addCompanyMarkers() {
+		console.log('addCompanyMarker');
+		this.removeCompanyMarkers();
+		if (this.mapShowCountries) {
+			this.companiesList.forEach((company) => {
+				this.addCompanyMarker(company.latlon[1], company.latlon[0], company.name + ': ' + company.companyAddress);
+			})
+		}
+	}
+
+	addShippingMarkers() {
+		console.log('addShippingMarkers');
+		this.removeShippingMarkers();
+		if (this.mapShowShipments) {
+			this.companiesList.forEach((country) => {
+				//this.addShipmentLine(country.origin, country.destination);
+			})
+		}
+	}
+
+
+	getSelectedCountryName(): string {
+		return this.selectedCountry?.name || '';
+	}
+
+	getSelectedCountryCode(): string {
+		return this.selectedCountry?.ctryIsoCd || '';
+	}
+	clearCountryInput = () => {
+		this.selectedCountry = undefined;
+		this.countriesForm.setValue('');
+		// reloads country markers
+		this.loadMainCountriesMarkers();
+	}
+	// reload main country markers 
+	loadMainCountriesMarkers = () => {
+		//no country is selected - then display all participaating countries on the map
+		this.removeMapMarkers();
+		for (let mainCountry of this.mainCountries) {
+			this.addMarker(mainCountry.name, mainCountry.name, '', mainCountry);
+		}
+		// this will post all the unmarked countries 
+		console.log("Countries Coordinates: ", this.logger.countryCoords)
+	}
+	mapShowCountries: boolean = false;
+	mapShowShipments: boolean = false;
+
+	mapChangeShowSettings() {
+		console.log('mapChangeShowSettings');
+		this.addCompanyMarkers();
+	}
+
+	mapChangeShippingSettings() {
+		console.log('mapChangeShippingSettings');
+		this.addShippingMarkers();
+	}
+
+	countries: Task[] = [];
+	allComplete: boolean = false;
+	task: Task = {
+		name: 'All Countries',
+		completed: false,
+		color: 'primary',
+		mra: {
+			Approved: 0,
+			Rejected: 0,
+			In_Progress: 0,
+		},
+		mra_total: 0,
+		subtasks: [],
+	};
+
+	updateAllComplete() {
+		this.allComplete = this.task.subtasks != null && this.task.subtasks.every(t => t.completed);
+		// this.countries = this.task.subtasks?.map(country => country) ?? [];
+	}
+
+	someComplete(): boolean {
+		if (this.task.subtasks == null) {
+			return false;
+		}
+		return this.task.subtasks.filter(t => t.completed).length > 0 && !this.allComplete;
+	}
+
+	setAll(completed: boolean) {
+		this.allComplete = completed;
+		if (this.task.subtasks == null) {
+			return;
+		}
+		this.task.subtasks.forEach(t => (t.completed = completed));
+	}
+
+	getSelectedCountries(): string | undefined {
+		return this.task.subtasks?.filter(country => country.completed).map(country => country.name).join(', ');
+	}
+
+	expandedCountryinTable = '';
+
+	selectCountriesRow(country: string) {
+		console.log(country);
+		if (this.expandedCountryinTable === country)
+			this.expandedCountryinTable = '';
+		else
+			this.expandedCountryinTable = country;
+	}
+
+	expandedCompanyinTable = '';
+	selectCompaniesRow(company: string) {
+		console.log(company);
+		if (this.expandedCompanyinTable === company)
+			this.expandedCompanyinTable = '';
+		else
+			this.expandedCompanyinTable = company;
+	}
+
+
+	noDataReceived: boolean = true;
+	searching : string = ""; 
+	filteredCountries: AeoProfile[] = []
+	ngOnInit(): void {
+		this.backendApi.getAllCountries().subscribe((data: any) => {
+			console.log(data);
+			this.task.subtasks = data.map((country: DB_Country) => {
+				return { name: country.country, completed: true, color: 'primary', companies: country.companies, mra: country.MRA, mra_total: country.MRA.Approved + country.MRA.Rejected + country.MRA.In_Progress };
+			});
+			this.countries = this.task.subtasks?.map(country => country) ?? [];
+			//this.task.subtasks {name: 'Australia', completed: true, color: 'primary'},
+			console.log(this.countries);
+		});
+		this.countriesForm.valueChanges.subscribe(filteredValue => {
+			this.filteredCountries = this.mainCountries.filter((country) => {
+				return country.name.toLowerCase().includes(filteredValue.toLowerCase())
+			})
+		})
+		this.backendApi.tokenFound.subscribe((found) => {
+			// loads in the aeoProfile
+			if (found) {
+				this.searching = "Searching..."
+				this.backendApi.getAEOProfiles().subscribe({
+					next: (data: any) => {
+						this.searching = "Loading AEO Profiles..."
+					this.noDataReceived = false;
+						console.log(data);
+						this.mainCountries = [];
+						let selected = 0;
+						const aeoData = data?.aeoPrflList;
+						if (aeoData) {
+							aeoData.forEach((element: any) => {
+								const initialLen = this.mainCountries.length;
+								this.mainCountries = this.mainCountries.filter((country: AeoProfile) => country.ctryIsoCd !== element.ctryIsoCd); //see if the country already exists then filter it out to avoid back-end sending duplicates.
+								if (initialLen !== this.mainCountries.length)
+									selected = 0;
+								console.log(countryCodes.find((country: any) => country.code === element.ctryIsoCd));
+								this.mainCountries.push({
+									name: this.utils.translateCodeToCountry(element.cntryCd),
+									ctryIsoCd: element.cntryCd,
+									selected: false, //selected ? false : true,
+									cmplncBasedPgm: element.cmplncBasedPgm,
+									securityBasedPgm: element.securityBasedPgm,
+									nbrOfMbrs: element.nbrOfMbrs,
+									pgmCd: element.pgmNm,
+									ctryAgncCd: element.cntryAgncNm,
+									yearMraPgmEst: element.yearAeoPgmEst,
+									mraPrtnrList: element.mraPrtnrList,
+									jwpPrtnrList: element.jwpPrtnrList,
+								});
+
+							selected = 1;
+						});
+					}
+
+					this.processSelectedCountry();
+				},
+				error: ()=>{
+					this.searching = "error";
+				}
+			});
+			}
+			else {
+				this.searching = "error"; 
+			}
+		})
+
+	}
+
+
+	ngAfterViewInit(): void {
+		this.initMap();
+		//this.addMarkerToMap(-74.0060152, 40.7127281);
+		//this.addMarker('New York');
+	}
+
+	mapMarkers: any[] = [];
+	mapCompanyMarkers: any[] = [];
+	mapShippingMarkers: any[] = [];
+	addMarkerToMap(lon: number, lat: number, country: string, type: string, object: any) {
+		console.log('addMarker');
+		const marker = L.marker([lat, lon])
+		let tooltipSettings: L.TooltipOptions = {
+			direction: 'top',
+			offset: [-15, -10]
+		}
+		switch (type) {
+			case 'select':
+			case '':
+				let countryTooltip = this.loading.generateTooltip('country', object)
+				marker.bindTooltip(countryTooltip || '', tooltipSettings);
+				break;
+			case 'JWP':
+				let jwpTooltip = this.loading.generateTooltip('jwp', object)
+				marker.bindTooltip(jwpTooltip || '', tooltipSettings);
+				break;
+			case 'MRA':
+				let mraTooltip = this.loading.generateTooltip('mra', object)
+				marker.bindTooltip(mraTooltip || '', tooltipSettings);
+				break;
+		}
+		// binds tooltip to the makrer, no idea of this works
+
+		marker.addTo(this.map).on('click', ((e: any) => {
+			switch (type) {
+				case 'JWP':
+					break;
+				case 'MRA':
+					break;
+				default:
+					if (!this.selectedCountry) {
+						this.openAeoProfile(country); // adds an event 
+					}
+			}
+
+		}));
+
+		this.mapMarkers.push(marker);
+
+		const circle = L.circleMarker([lat, lon])
+		if (type!=='') {
+			// binds a jwp tooltip
+			circle.bindTooltip(country,
+				{
+					permanent: true,
+					offset: [11, -1],
+					direction: 'right'
+				});
+		}
+		/*
+		
+		*/
+
+		if (type === 'MRA') {
+			circle.setStyle({ color: 'green' });
+		}
+		else if (type === 'JWP') {
+			circle.setStyle({ color: 'orange' });
+		}
+		else {
+			circle.setStyle({ color: 'blue' });
+		}
+		circle.addTo(this.map);
+		this.mapMarkers.push(circle);
+
+
+		/*
+		var pointA = new L.LatLng(128.635308, 77.22496);
+		var pointB = new L.LatLng(28.984461, 37.70641);
+		var pointList = [pointA, pointB];
+	
+		var firstpolyline = new L.Polyline(pointList, {
+			color: 'green',
+			weight: 1,
+			opacity: 0.5,
+			smoothFactor: 1
+		});
+		firstpolyline.addTo(this.map);
+		*/
+
+		//this.addCurvedLine([23.634501, -102.552783], [17.987557, -92.929147]);
+	}
+
+	async addShipmentLine(origin: string, destination: string) {
+		console.log('addShipmentLine');
+		const originCoordinates = await this.getLatLon(origin);
+		const destinationCoordinates = await this.getLatLon(destination);
+		//console.log(originCoordinates);
+		//console.log(destinationCoordinates);
+		if (originCoordinates != undefined && destinationCoordinates != undefined)
+			this.addCurvedLine([originCoordinates[1], originCoordinates[0]], [destinationCoordinates[1], destinationCoordinates[0]], origin, destination);
+	}
+
+	addCurvedLine(originPoints: number[], destPoints: number[], origin: string, destination: string) {
+		const latlngs = [];
+
+		const offsetX = destPoints[1] - originPoints[1],
+			offsetY = destPoints[0] - originPoints[0];
+
+		const r = Math.sqrt(Math.pow(offsetX, 2) + Math.pow(offsetY, 2)),
+			theta = Math.atan2(offsetY, offsetX);
+
+		const thetaOffset = (3.14 / 10);
+
+		const r2 = (r / 2) / (Math.cos(thetaOffset)),
+			theta2 = theta - thetaOffset;
+
+		const midpointX = (r2 * Math.cos(theta2)) + originPoints[1],
+			midpointY = (r2 * Math.sin(theta2)) + originPoints[0];
+
+		const midpointLatLng = [midpointY, midpointX];
+
+		latlngs.push(originPoints, midpointLatLng, destPoints);
+
+		console.log([
+			'M', originPoints,
+			'Q', midpointLatLng,
+			destPoints]);
+
+		const pointA = new L.LatLng(originPoints[0], originPoints[1]);
+		const pointB = new L.LatLng(midpointLatLng[0], midpointLatLng[1]);
+		const pointC = new L.LatLng(destPoints[0], destPoints[1]);
+		const pointList = [pointA, pointB, pointC];
+
+		const firstpolyline = new L.Polyline(pointList, {
+			color: 'green',
+			weight: 2,
+			opacity: 0.5,
+			dashArray: '15, 5',
+			smoothFactor: 1
+		});
+		this.mapShippingMarkers.push(firstpolyline);
+
+		firstpolyline.addTo(this.map);
+
+		const decorator = L.polylineDecorator(firstpolyline, {
+			patterns: [
+				// defines a pattern of 10px-wide dashes, repeated every 20px on the line
+				{ offset: 0, repeat: 50, symbol: L.Symbol.arrowHead({ pixelSize: 8, polygon: false, pathOptions: { stroke: true } }) }
+			]
+		}).bindTooltip(origin + ' >> ' + destination, { permanent: false, direction: 'top' }).addTo(this.map);
+
+		this.mapShippingMarkers.push(decorator);
+	}
+
+
+	addCompanyMarker(lon: number, lat: number, name: string) {
+		const lat1 = [lon, lat];
+		const svgIcon = L.divIcon({
+			html: `
+			<svg xmlns="http://www.w3.org/2000/svg"   fill="currentColor"  
+			width="120"
+			height="120" color="green"
+			viewBox="0 0 90 90">
+			<path d="M14.763.075A.5.5 0 0 1 15 .5v15a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5V14h-1v1.5a.5.5 0 0 1-.5.5h-9a.5.5 0 0 1-.5-.5V10a.5.5 0 0 1 .342-.474L6 7.64V4.5a.5.5 0 0 1 .276-.447l8-4a.5.5 0 0 1 .487.022ZM6 8.694 1 10.36V15h5V8.694ZM7 15h2v-1.5a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 .5.5V15h2V1.309l-7 3.5V15Z"/>
+			<path d="M2 11h1v1H2v-1Zm2 0h1v1H4v-1Zm-2 2h1v1H2v-1Zm2 0h1v1H4v-1Zm4-4h1v1H8V9Zm2 0h1v1h-1V9Zm-2 2h1v1H8v-1Zm2 0h1v1h-1v-1Zm2-2h1v1h-1V9Zm0 2h1v1h-1v-1ZM8 7h1v1H8V7Zm2 0h1v1h-1V7Zm2 0h1v1h-1V7ZM8 5h1v1H8V5Zm2 0h1v1h-1V5Zm2 0h1v1h-1V5Zm0-2h1v1h-1V3Z"/>
+		</svg>
+			<path d="M0 0 L50 100 L100 0 Z" fill="#7A8BE7"></path>
+		  </svg>`,
+			className: "",
+			iconSize: [120, 120],
+			iconAnchor: [0, 0],
+		});
+		const compMarker = L.marker([lon, lat], { icon: svgIcon }).bindTooltip(name, { permanent: false, direction: 'top' }).addTo(this.map);
+
+		this.mapCompanyMarkers.push(compMarker);
+	}
+
+
+	removeMapMarkers() {
+		this.removeCompanyMarkers();
+		this.removeShippingMarkers()
+		for (let i = 0; i < this.mapMarkers.length; i++) {
+			this.map.removeLayer(this.mapMarkers[i]);
+		}
+		this.mapMarkers = [];
+	}
+
+
+	removeCompanyMarkers() {
+		for (let i = 0; i < this.mapCompanyMarkers.length; i++) {
+			this.map.removeLayer(this.mapCompanyMarkers[i]);
+		}
+		this.mapCompanyMarkers = [];
+	}
+
+	removeShippingMarkers() {
+		for (let i = 0; i < this.mapShippingMarkers.length; i++) {
+			this.map.removeLayer(this.mapShippingMarkers[i]);
+		}
+		this.mapShippingMarkers = [];
+	}
+
+	//retreives lat and lon. input: address
+	async getLatLon(address: string): Promise<[number, number] | undefined> {
+		if (!address || address === '') {
+			return undefined;
+		}
+		const getCoords = countryGeoCoords.find((element: any) => element.Name === address);
+
+		if (getCoords) {
+			console.log(getCoords);
+			return [getCoords.lon, getCoords.lat];
+		}
+		else {
+			const latLon = await this.backendApi.getLatLonAPI(address).subscribe((data: any) => {
+				console.log(data);
+				if (data && data.length > 0) {
+					return [data[0].lon, data[0].lat];
+				}
+				return undefined;
+			});
+			console.log(latLon);
+			return undefined;
+		}
+	}
+
+
+	//adds country marker on the map. input: country's name
+	addMarker(address: string, country: string, type: string, payload?: any) {
+		const getCoords = countryGeoCoords.find((element: any) => element.name === address);
+		if (getCoords) {
+			this.addMarkerToMap(getCoords.lon, getCoords.lat, country, type, payload);
+		}
+		else {
+			if (address) {
+				this.backendApi.getLatLonAPI(address).subscribe((data: any) => {
+					if (data.length > 0) {
+						// country name added 
+						this.addMarkerToMap(data[0].lon, data[0].lat, data[0].name, type, payload);
+						if (type === 'select' || type === '') {
+							this.logger.addCountryToJSON({
+								name: data[0].name,
+								lat: data[0].lat,
+								lon: data[0].lon,
+								code: payload?.ctryIsoCd || ''
+							})
+						}
+					}
+				});
+			}
+		}
+	}
+
+	//chart variables
+	mraCounter = {
+		approved: 0,
+		rejected: 0,
+		inprogress: 0,
+		max: 0,
+	};
+	mraCounts: any[] = [];
+	multi: any[] = [];
+
+	view: [number, number] = [600, 350];
+	view1: [number, number] = [700, 400];
+	// options
+	showXAxis = true;
+	showYAxis = true;
+	gradient = false;
+	gradientHeatmap = true;
+	showLegend = true;
+	showXAxisLabel = false;
+	xAxisLabel = 'MRA Counts';
+	showYAxisLabel = true;
+	yAxisLabel = 'Population';
+
+	colorScheme = {
+		domain: ['#5AA454', '#A10A28', '#C7B42C', '#AAAAAA']
+	};
+
+	onSelect(event: any) {
+		console.log(event);
+	}
+
+	filter = new FormControl('', { nonNullable: true });
+}
+
+
