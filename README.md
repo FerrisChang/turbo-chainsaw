@@ -1,47 +1,7 @@
-
-Warning: src/app/company-full-view/company-full-view.component.html:55:91 - warning NG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.
-
-55               <span *ngIf="country.name.length>2" class="flag-input fi fi-{{country.code?.toLowerCase()}}"></span>
-                                                                                             ~~~~~~~~~~~
-
-  src/app/company-full-view/company-full-view.component.ts:30:15
-    30  templateUrl: './company-full-view.component.html',
-                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    Error occurs in the template of component CompanyFullViewComponent.
-
-
-Warning: src/app/main-view/main-view.component.html:202:113 - warning NG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.
-
-202                                     <span *ngIf="country.name.length>2" class="flag-input fi fi-{{country.code?.toLowerCase()}}"></span>
-                                                                                                                    ~~~~~~~~~~~
-
-  src/app/main-view/main-view.component.ts:51:15
-    51  templateUrl: './main-view.component.html',
-                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    Error occurs in the template of component MainViewComponent.
-
-
-Warning: C:\Users\BBDFQQF\g2g-ui\g2g-ui\src\app\utils\view-location\view-location.component.ts depends on 'leaflet'. CommonJS or AMD dependencies can cause optimization bailouts.
-For more info see: https://angular.io/guide/build#configuring-commonjs-dependencies
-
-
-
 Error: src/app/companies-view/companies-view.component.html:518:57 - error TS2551: Property 'showLabels' does not exist on type 'CompaniesViewComponent'. Did you mean 'showLables'?
 
 518                         [legend]="showLegend" [labels]="showLabels" [doughnut]="isDoughnut"
                                                             ~~~~~~~~~~
-
-  src/app/companies-view/companies-view.component.ts:106:15
-    106  templateUrl: './companies-view.component.html',
-                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    Error occurs in the template of component CompaniesViewComponent.
-
-
-Error: src/app/companies-view/companies-view.component.html:519:26 - error TS2322: Type '{ domain: string[]; }' is not assignable to type 'string | Color'.
-  Type '{ domain: string[]; }' is missing the following properties from type 'Color': name, selectable, group
-
-519                         [scheme]="colorScheme" (select)="onSelect($event)">
-                             ~~~~~~
 
   src/app/companies-view/companies-view.component.ts:106:15
     106  templateUrl: './companies-view.component.html',
@@ -71,13 +31,12 @@ Error: src/app/companies-view/companies-view.component.html:550:66 - error TS255
     Error occurs in the template of component CompaniesViewComponent.
 
 
-Error: src/app/companies-view/companies-view.component.html:551:26 - error TS2322: Type '{ domain: string[]; }' is not assignable to type 'string | Color'.
+Error: src/app/companies-view/companies-view.component.ts:568:33 - error TS2551: Property 'translateCodeToCounrty' does not exist on type 'UtilsService'. Did you mean 'translateCodeToCountry'?
 
-551                         [scheme]="colorScheme" (select)="onSelect($event)">
-                             ~~~~~~
+568   this.hostCountry = this.utils.translateCodeToCounrty(this.hostCountryIso)
+                                    ~~~~~~~~~~~~~~~~~~~~~~
 
-  src/app/companies-view/companies-view.component.ts:106:15
-    106  templateUrl: './companies-view.component.html',
-                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    Error occurs in the template of component CompaniesViewComponent.
-
+  src/app/services/utils.service.ts:23:3
+    23   translateCodeToCountry(countryCode: string) : any {
+         ~~~~~~~~~~~~~~~~~~~~~~
+    'translateCodeToCountry' is declared here.
