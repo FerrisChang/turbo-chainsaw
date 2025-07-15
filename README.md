@@ -236,7 +236,7 @@ border-color: rgb(142, 153, 163);
 ::ng-deep {
   ngx-charts-advanced-pie-chart {
     display: flex !important;
-    flex-direction: column !important;
+    flex-direction: row !important;
     justify-content: center !important;
     align-items: center !important;
     width: 100% !important;
@@ -300,6 +300,7 @@ border-color: rgb(142, 153, 163);
       display: flex !important;
       align-items: center !important;
       justify-content: center !important;
+      text-align: center !important;
 
         .advanced-pie-legend {
         width: 100% !important;
@@ -308,19 +309,21 @@ border-color: rgb(142, 153, 163);
         display: flex !important;
         flex-direction: row !important;
         flex-wrap: wrap !important;
-        gap: 0.125rem !important;
+        gap: 0.25rem !important;
         justify-content: center !important;
         align-items: center !important;
         overflow: visible !important;
         position: relative !important;
+        text-align: center !important;
         
         .total-value {
           padding-left: 0.0625rem !important;
           font-size: 0.5625rem !important;
         }
         .legend-item {
-          display: flex !important;
+          display: inline-flex !important;
           align-items: center !important;
+          justify-content: center !important;
           font-size: 0.5625rem !important;
           font-weight: 500 !important;
           color: #333 !important;
@@ -331,9 +334,11 @@ border-color: rgb(142, 153, 163);
           min-width: 4rem !important;
           max-width: 6rem !important;
           width: auto !important;
-          flex: 0 1 auto !important;
+          flex: 0 0 auto !important;
           overflow: visible !important;
           position: relative !important;
+          margin: 0.0625rem !important;
+          float: none !important;
 
           .legend-label {
             font-weight: 600 !important;
@@ -345,7 +350,7 @@ border-color: rgb(142, 153, 163);
             max-width: 2.5rem !important;
             width: auto !important;
             word-wrap: break-word !important;
-            text-align: left !important;
+            text-align: center !important;
           }
           
           .legend-value {
@@ -819,4 +824,3 @@ border-color: rgb(142, 153, 163);
       }
     }
   }
-
