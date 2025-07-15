@@ -1,4 +1,4 @@
-
+ 
   #map {
     top: 0;
     left: 0;
@@ -243,17 +243,15 @@
 
     .advanced-pie,.chart {
       padding: 0 1rem 0 3rem;
-      width: 100% !important;
-      height: auto !important;
-      max-width: 400px;
-      max-height: 400px;
+      width: 286px !important;
+      height: 360px !important;
     }
 
     .advanced-pie {
       flex: 1;
       max-width: 100%;
       width: 100%;
-      min-height: 300px;
+      min-height: 400px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -278,61 +276,51 @@
       }
     }
     .advanced-pie-legend-wrapper {
-      width: 100% !important;
-      max-width: 500px;
+      width: 380px !important;
 
         .advanced-pie-legend {
         width: 100% !important;
-        padding: 15px 8px 8px 8px;
+        padding: 20px 10px 10px 10px;
         display: flex;
         flex-direction: row;
         flex-wrap: wrap;
-        gap: 10px;
-        justify-content: center;
-        overflow: hidden;
+        gap: 20px;
         
         .total-value {
-          padding-left: 8px;
-          font-size: 12px;
+          padding-left: 12px;
         }
         .legend-item {
           display: flex;
           align-items: center;
-          font-size: 12px;
+          font-size: 13px;
           font-weight: 500;
           color: #333;
-          padding: 6px 10px;
+          padding: 8px 12px;
           background: rgba(255,255,255,0.9);
           border-radius: 6px;
           box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
-          min-width: 100px;
-          max-width: 150px;
-          flex: 0 1 auto;
-          overflow: hidden;
+          min-width: 120px;
 
           .legend-label {
             font-weight: 600;
             color: #333;
-            margin-left: 6px;
+            margin-left: 8px;
             white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            max-width: 60px;
           }
           
           .legend-value {
             font-weight: 600;
             color: #555;
-            margin-left: 6px;
-            min-width: 25px;
+            margin-left: 8px;
+            min-width: 30px;
             text-align: right;
           }
           
           .legend-percent {
             font-weight: 500;
             color: #666;
-            margin-left: 6px;
-            min-width: 35px;
+            margin-left: 8px;
+            min-width: 40px;
             text-align: right;
           }
         }
@@ -342,9 +330,6 @@
   }
     
         .ngx-charts-bar-vertical {
-          width: 100% !important;
-          height: 100% !important;
-          
           .x-axis {
             .tick {
               text {
@@ -406,21 +391,16 @@
           width: 100%;
           height: 100%;
           min-height: 350px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
         }
         
         .ngx-charts-outer {
           width: 100% !important;
-          height: 100% !important;
         }
 
 
     // Override ngx-charts legend styling for full text visibility
     ngx-charts-legend {
-      width: 100% !important;
-      max-width: 100%;
+      width: 25% !important;
       
       // Target the inner div that contains the legend text
       > div {
@@ -451,224 +431,22 @@
       }
     
 
-      // Large screens (1200px and up)
-      @media (min-width: 1200px) {
+      @media (max-width: 768px) {
         .analytics-card {
           .card-body {
-            min-height: 450px;
-            padding: 2rem;
+            min-height: 300px;
+            padding: 1rem;
           }
         }
-        
+    
         ::ng-deep {
-          ngx-charts-advanced-pie-chart {
-            .advanced-pie,.chart {
-              max-width: 500px;
-              max-height: 500px;
-            }
-            
-            .advanced-pie-legend-wrapper {
-              max-width: 600px;
-            }
-          }
-          
+          .ngx-charts-pie-chart,
           .ngx-charts-bar-vertical {
-            .x-axis, .y-axis {
-              .tick text {
-                font-size: 12px;
-              }
-            }
-          }
-        }
-      }
-
-      // Medium screens (768px to 1199px)
-      @media (min-width: 768px) and (max-width: 1199px) {
-        .analytics-card {
-          .card-body {
-            min-height: 400px;
-            padding: 1.5rem;
-          }
-        }
-        
-        ::ng-deep {
-          ngx-charts-advanced-pie-chart {
-            .advanced-pie,.chart {
-              max-width: 350px;
-              max-height: 350px;
-            }
-            
-            .advanced-pie-legend-wrapper {
-              max-width: 450px;
-            }
-          }
-        }
-      }
-
-             // Small screens (576px to 767px)
-       @media (min-width: 576px) and (max-width: 767px) {
-         .analytics-card {
-           .card-body {
-             min-height: 350px;
-             padding: 1rem;
-           }
-         }
-         
-         ::ng-deep {
-           ngx-charts-advanced-pie-chart {
-             .advanced-pie,.chart {
-               max-width: 300px;
-               max-height: 300px;
-               padding: 0 0.5rem 0 1.5rem;
-             }
-             
-             .advanced-pie-legend-wrapper {
-               max-width: 350px;
-               
-               .advanced-pie-legend {
-                 gap: 8px;
-                 padding: 12px 6px 6px 6px;
-                 
-                 .legend-item {
-                   font-size: 11px;
-                   padding: 5px 8px;
-                   min-width: 90px;
-                   max-width: 120px;
-                   
-                   .legend-label {
-                     max-width: 50px;
-                     margin-left: 4px;
-                   }
-                   
-                   .legend-value {
-                     min-width: 20px;
-                     margin-left: 4px;
-                   }
-                   
-                   .legend-percent {
-                     min-width: 30px;
-                     margin-left: 4px;
-                   }
-                 }
-               }
-             }
-           }
-           
-           .ngx-charts-bar-vertical {
-             .x-axis, .y-axis {
-               .tick text {
-                 font-size: 10px;
-               }
-             }
-             
-             .x-axis-label, .y-axis-label {
-               font-size: 11px;
-             }
-           }
-         }
-       }
-
-             // Extra small screens (up to 575px)
-       @media (max-width: 575px) {
-         .analytics-card {
-           .card-body {
-             min-height: 300px;
-             padding: 0.75rem;
-           }
-         }
-         
-         ::ng-deep {
-           ngx-charts-advanced-pie-chart {
-             .advanced-pie,.chart {
-               max-width: 250px;
-               max-height: 250px;
-               padding: 0 0.25rem 0 1rem;
-             }
-             
-             .advanced-pie-legend-wrapper {
-               max-width: 100%;
-               
-               .advanced-pie-legend {
-                 flex-direction: column;
-                 gap: 6px;
-                 padding: 12px 4px 4px 4px;
-                 
-                 .legend-item {
-                   font-size: 10px;
-                   padding: 4px 6px;
-                   min-width: 70px;
-                   max-width: none;
-                   width: 100%;
-                   justify-content: space-between;
-                   
-                   .legend-label {
-                     max-width: none;
-                     margin-left: 4px;
-                     flex: 1;
-                   }
-                   
-                   .legend-value {
-                     min-width: 18px;
-                     margin-left: 4px;
-                   }
-                   
-                   .legend-percent {
-                     min-width: 25px;
-                     margin-left: 4px;
-                   }
-                 }
-               }
-             }
-             
-             .pie-label {
-               font-size: 10px !important;
-             }
-           }
-           
-           .ngx-charts-bar-vertical {
-             .x-axis, .y-axis {
-               .tick text {
-                 font-size: 9px;
-               }
-             }
-             
-             .x-axis-label, .y-axis-label {
-               font-size: 10px;
-             }
-             
-             .legend {
-               .legend-title {
-                 font-size: 12px;
-               }
-               
-               .legend-labels {
-                 .legend-label {
-                   font-size: 10px;
-                 }
-               }
-             }
-           }
-         }
-       }
-
-      // Landscape orientation on mobile
-      @media (max-width: 767px) and (orientation: landscape) {
-        .analytics-card {
-          .card-body {
-            min-height: 250px;
-          }
-        }
-        
-        ::ng-deep {
-          ngx-charts-advanced-pie-chart {
-            .advanced-pie,.chart {
-              max-height: 200px;
-            }
-            
-            .advanced-pie-legend-wrapper {
-              .advanced-pie-legend {
-                flex-direction: row;
-                flex-wrap: wrap;
+            .legend {
+              .legend-labels {
+                .legend-label {
+                  font-size: 11px;
+                }
               }
             }
           }
@@ -780,4 +558,3 @@
         }
       }
     }
-
