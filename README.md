@@ -228,125 +228,129 @@ border-color: rgb(142, 153, 163);
         display: flex;
         align-items: center;
         justify-content: center;
+        overflow: visible;
       }
     }
 
 
 ::ng-deep {
   ngx-charts-advanced-pie-chart {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    position: relative;
-    max-width: 100%;
-    max-height: 100%;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    align-items: center !important;
+    width: 100% !important;
+    height: 100% !important;
+    overflow: visible !important;
+    position: relative !important;
+    min-height: 20rem !important;
 
     .advanced-pie,.chart {
-      padding: 0;
-      width: 100%;
-      height: auto;
-      max-width: 15rem;
-      max-height: 15rem;
-      overflow: hidden;
-      position: relative;
+      padding: 0 !important;
+      width: 100% !important;
+      height: auto !important;
+      max-width: 15rem !important;
+      max-height: 15rem !important;
+      min-width: 12rem !important;
+      min-height: 12rem !important;
+      overflow: visible !important;
+      position: relative !important;
     }
 
     .advanced-pie {
-      flex: 1;
-      max-width: 100%;
-      width: 100%;
-      min-height: 12rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
-      position: relative;
+      flex: 1 !important;
+      max-width: 100% !important;
+      width: 100% !important;
+      min-height: 12rem !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      overflow: visible !important;
+      position: relative !important;
 
       
       svg {
-        width: 100%;
-        height: 100%;
-        max-width: 100%;
-        max-height: 100%;
-        overflow: hidden;
-        position: relative;
+        width: 100% !important;
+        height: 100% !important;
+        max-width: 100% !important;
+        max-height: 100% !important;
+        min-width: 10rem !important;
+        min-height: 10rem !important;
+        overflow: visible !important;
+        position: relative !important;
       }
 
       path {
-        stroke-width: 0.125rem;
+        stroke-width: 0.125rem !important;
       }
       .pie-label {
-        font-size: 0.625rem;
-        font-weight: 600;
-        fill: #333;
-        text-shadow: 0.0625rem 0.0625rem 0.125rem rgba(255, 255, 255, 0.8);
+        font-size: 0.625rem !important;
+        font-weight: 600 !important;
+        fill: #333 !important;
+        text-shadow: 0.0625rem 0.0625rem 0.125rem rgba(255, 255, 255, 0.8) !important;
       }
     }
     .advanced-pie-legend-wrapper {
-      width: 100%;
-      max-width: 18rem;
-      overflow: hidden;
-      position: relative;
+      width: 100% !important;
+      max-width: 18rem !important;
+      overflow: visible !important;
+      position: relative !important;
 
         .advanced-pie-legend {
-        width: 100%;
-        padding: 0.125rem 0.0625rem 0.0625rem 0.0625rem;
-        display: flex;
-        flex-direction: row;
-        flex-wrap: wrap;
-        gap: 0.125rem;
-        justify-content: center;
-        overflow: hidden;
-        position: relative;
+        width: 100% !important;
+        padding: 0.125rem 0.0625rem 0.0625rem 0.0625rem !important;
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: wrap !important;
+        gap: 0.125rem !important;
+        justify-content: center !important;
+        overflow: visible !important;
+        position: relative !important;
         
         .total-value {
-          padding-left: 0.0625rem;
-          font-size: 0.5625rem;
+          padding-left: 0.0625rem !important;
+          font-size: 0.5625rem !important;
         }
         .legend-item {
-          display: flex;
-          align-items: center;
-          font-size: 0.5625rem;
-          font-weight: 500;
-          color: #333;
-          padding: 0.125rem 0.1875rem;
-          background: rgba(255,255,255,0.9);
-          border-radius: 0.1875rem;
-          box-shadow: 0 0.0625rem 0.25rem rgba(0, 0, 0, 0.1);
-          min-width: 3rem;
-          max-width: 4.5rem;
-          flex: 0 1 auto;
-          overflow: hidden;
-          position: relative;
+          display: flex !important;
+          align-items: center !important;
+          font-size: 0.5625rem !important;
+          font-weight: 500 !important;
+          color: #333 !important;
+          padding: 0.125rem 0.1875rem !important;
+          background: rgba(255,255,255,0.9) !important;
+          border-radius: 0.1875rem !important;
+          box-shadow: 0 0.0625rem 0.25rem rgba(0, 0, 0, 0.1) !important;
+          min-width: 3rem !important;
+          max-width: 4.5rem !important;
+          flex: 0 1 auto !important;
+          overflow: hidden !important;
+          position: relative !important;
 
           .legend-label {
-            font-weight: 600;
-            color: #333;
-            margin-left: 0.125rem;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            max-width: 1.75rem;
+            font-weight: 600 !important;
+            color: #333 !important;
+            margin-left: 0.125rem !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            max-width: 1.75rem !important;
           }
           
           .legend-value {
-            font-weight: 600;
-            color: #555;
-            margin-left: 0.125rem;
-            min-width: 0.75rem;
-            text-align: right;
+            font-weight: 600 !important;
+            color: #555 !important;
+            margin-left: 0.125rem !important;
+            min-width: 0.75rem !important;
+            text-align: right !important;
           }
           
           .legend-percent {
-            font-weight: 500;
-            color: #666;
-            margin-left: 0.125rem;
-            min-width: 1.125rem;
-            text-align: right;
+            font-weight: 500 !important;
+            color: #666 !important;
+            margin-left: 0.125rem !important;
+            min-width: 1.125rem !important;
+            text-align: right !important;
           }
         }
       }    
@@ -355,8 +359,8 @@ border-color: rgb(142, 153, 163);
   }
   
               .ngx-charts-bar-vertical {
-          width: 100%;
-          height: 100%;
+          width: 100% !important;
+          height: 100% !important;
         
         .x-axis {
           .tick {
@@ -415,18 +419,20 @@ border-color: rgb(142, 153, 163);
       }
   
 
-      .chart-container {
-        width: 100%;
-        height: 100%;
-        min-height: 21.875rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
+              .chart-container {
+          width: 100% !important;
+          height: 100% !important;
+          min-height: 21.875rem !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          overflow: visible !important;
+        }
       
               .ngx-charts-outer {
-          width: 100%;
-          height: 100%;
+          width: 100% !important;
+          height: 100% !important;
+          overflow: visible !important;
         }
 
 
@@ -793,4 +799,3 @@ border-color: rgb(142, 153, 163);
       }
     }
   }
-
