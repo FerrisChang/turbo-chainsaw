@@ -1,826 +1,410 @@
+import { Component, Inject } from '@angular/core';
 
-#map {
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height:  460px;
-}
-.country-input {
-width: 30%;
-}
-.country-row {
-display: flex; 
-}
-.flag-network-icon {
-margin-right: 1em; 
-width: 4em; 
-height: 4em;
-}
-.card-title>.title-header {
-font-size: 1.5em; 
-font-weight: 550;
-margin-top: 0.5em;
-margin-bottom: 0.5em;
-}
-.card-title>.title-description {
-margin-top: 0.5em; 
-margin-left: 1em;
-font-size: 1.1em;
-}
-.companies-table-layout {
-height: 50em;
-display: flex; 
-gap: 2em;
-}
-.companies-table-frame {
-flex: 1;
-height: 100%;
+import { read, utils } from "xlsx";
+import { states } from '../services/resources/states';
+import { Country, MRARequestCompanyLocationSubmission, MRARequestCompanySubmission, MRARequestSubmission, MraRequestSubmissionPayload } from '../mra-request-full-view/mra-request-types';
+import { BackendapiService } from '../backendapi.service';
+import { FormControl } from '@angular/forms';
+import { emptyAlternativeID, emptyMraRequestCompanyLocationSubmission, emptyMraRequestCompanySubmission, emptyMraRequestSubmission } from '../mra-request-full-view/mra-request-models';
+import { MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
+import { Company } from '../company-full-view/companies-types';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { variables } from 'src/environments/variables';
+import { G2GCompany, G2GCompanyLocation } from '../services/G2GMessage-types';
+import { UtilsService } from '../services/utils.service';
+
+
+export interface DialogData {
+  countryName: string;
+  companyName: string;
+  closeStatus: string;
 }
 
-.companies-table-frame>.card-body{
-max-height: 100%; 
-overflow-y: hidden
-} 
-  body {
-      min-height: 100vh;
-      min-height: -webkit-fill-available;
+export interface excelData {
+  function: string;
+  companyName: string;
+  programName: string;
+  companyStatus: string;
+  certificationDate: string;
+  ein: string;
+  streetAdress: string;
+  city: string;
+  state: string;
+  country: string;
+  postalCode: string;
+  lastValidationDate: string;
+}
+
+
+@Component({
+  selector: 'app-add-update-companies-dlg',
+  templateUrl: './add-update-companies-dlg.component.html',
+  styleUrls: ['./add-update-companies-dlg.component.scss']
+})
+export class AddUpdateCompaniesDlgComponent {
+  constructor(private backendAPI: BackendapiService,
+    private snackBar: MatSnackBar,
+    private utils: UtilsService
+  ) {
+
+  }
+
+
+  sendToCountry: string = '';
+
+  companiesHeader = ['function', 'programName', 'ein', 'companyName', 'streetAdress', 'city', 'state', 'country', 'postalCode', 'companyStatus', 'certificationDate', 'lastValidationDate'];
+  excelHeader = ['List function needed for record', 'Program Name', 'BEI Value', 'BEI Type', 'Account/Company Name', 'Comment', 'Street Adress', 'City', 'State', 'Country', 'Postal Code', 'Certification Date (MM/DD/YYYY)', 'Last Validation Date (MM/DD/YYYY)'];
+
+  viewMode: number = 2;
+  companiesData: excelData[] = [];
+  companySubmissions: MRARequestCompanySubmission[] = [];
+  availableCountries: Country[] = [];
+  filteredCountries: Country[] = [];
+  countriesForm: FormControl = new FormControl('');
+  file: any;
+  uploadEvent = '';
+  arrayBuffer: any = '';
+  exceljsondata: any = '';
+  submitted = false;
+
+  processedData: any = [];
+  processedDataCount: number = 0;
+  sendingRequest = false;
+
+  submission: MRARequestSubmission = emptyMraRequestSubmission;
+  fieldErrors: string[] = []; // all of the fields that are found to have errors
+  actualSubmission: MraRequestSubmissionPayload | null = null;
+
+  ngOnInit() {
+    this.backendAPI.availableCountries.subscribe((countries) => {
+      this.availableCountries = countries;
+    })
+    this.countriesForm.valueChanges.subscribe(filteredValue => {
+      this.submission.country = filteredValue;
+      this.filteredCountries = this.availableCountries.filter((country) => {
+        return country.name.toLowerCase().includes(filteredValue.toLowerCase())
+      })
+    })
+  }
+  addError(fieldName: string) {
+    if (!this.fieldErrors.includes(fieldName)) {
+      this.fieldErrors.push(fieldName)
     }
+  }
+  removeError(fieldName: string) {
+    let removeIndex = this.fieldErrors.indexOf(fieldName);
+    if (removeIndex >= 0) {
+      this.fieldErrors.splice(removeIndex, 1)
+    }
+  }
+  removeCompany(companyIndex: number) {
     
-    html {
-      height: -webkit-fill-available;
-    }
-    
-    main {
-      height: 100vh;
-      height: -webkit-fill-available;
-      max-height: 100vh;
-      overflow-x: auto;
-      overflow-y: hidden;
-    }
-    
-    .dropdown-toggle { outline: 0; }
-    
-    .btn-toggle {
-      padding: .25rem .5rem;
-      font-weight: 600;
-      color: var(--bs-emphasis-color);
-      background-color: transparent;
-    }
-    .btn-toggle:hover,
-    .btn-toggle:focus {
-      color: rgba(var(--bs-emphasis-color-rgb), .85);
-      background-color: var(--bs-tertiary-bg);
-    }
-     
-    
-    .btn-toggle[aria-expanded="true"] {
-      color: rgba(var(--bs-emphasis-color-rgb), .85);
-    }
-    .btn-toggle[aria-expanded="true"]::before {
-      transform: rotate(90deg);
-    }
-    
-    .btn-toggle-nav a {
-      padding: .1875rem .5rem;
-      margin-top: .125rem;
-      margin-left: 1.25rem;
-    }
-    .btn-toggle-nav a:hover,
-    .btn-toggle-nav a:focus {
-      background-color: var(--bs-tertiary-bg);
-    }
-    
-    .scrollarea {
-      overflow-y: auto;
-    }
-  
-  
-    .navbar-svg-icon {
-      position:relative;
-      top:-2px;
-      margin-right: 5px
+    // makes sure that all errors that are related to the company is removed 
+    this.fieldErrors = this.fieldErrors.filter((error)=>{
+      return !error.includes(`Company ${companyIndex+1}`)
+    })
+    this.companySubmissions.splice(companyIndex, 1);
   }
-  
-  .navbar-svg-icon-inactive {
-    position:relative; 
-    margin-right: 5px
+  addCompanyLocation(companyIndex: number) {
+    this.companySubmissions[companyIndex].locations.push(
+      { ...emptyMraRequestCompanyLocationSubmission }
+    )
   }
-  
-  .btn-filter {
-      box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
-     ;
+  submitRole(companyIndex: number, locationIndex: number) {
+    this.companySubmissions[companyIndex].locations[locationIndex].roleList.push(
+      this.companySubmissions[companyIndex].locations[locationIndex].roleInput
+    )
+    this.companySubmissions[companyIndex].locations[locationIndex].roleInput = "";
   }
-  
-  .navbar-btn-hover:hover {
-    background-color: rgb(225, 236, 247);
-    border-radius: 5px;
-    
+  removeCompanyLocation(companyIndex: number, locationIndex: number) {
+    // makes sure that all errors that are related to the company location is removed
+    this.fieldErrors = this.fieldErrors.filter((error)=>{
+      return !error.includes(`Location ${locationIndex+1}, Company ${companyIndex+1}`)
+    })
+    this.companySubmissions[companyIndex].locations.splice(locationIndex, 1);
   }
-  
-  
-  .btn-filter:hover {
-     color: rgb(8, 67, 230);
+  removeAltID(companyIndex: number, locationIndex: number, idIndex: number) {
+    // makes sure that all errors that are related to the company alternate id is removed
+    this.fieldErrors = this.fieldErrors.filter((error)=>{
+      return !error.includes(`ID ${idIndex+1}, Location ${locationIndex+1}, Company ${companyIndex+1}`)
+    })
+    this.companySubmissions[companyIndex].locations[locationIndex].alternateID.splice(idIndex, 1);
   }
-  
-  mat-sidenav {
-    width: 350px;
+  addAlternateID(companyIndex: number, locationIndex: number) {
+    this.companySubmissions[companyIndex].locations[locationIndex].alternateID.push({ ...emptyAlternativeID })
   }
-  
-.widget-card {
-box-shadow: 2px 2px 4px 1px rgba(0, 0, 0, 0.1);
-border-color: rgb(142, 153, 163);
-}
-
-
-  .card-hdr-class {
-    background:  rgb(0, 60, 110);
-    color: white;
+  clearCountryInput() {
+    this.countriesForm.setValue('');
   }
-  
-  .example-accordion {
-    display: block;
-    max-width: 500px;
+  clearRole = (companyIndex: number, locationIndex: number, roleIndex: number) => {
+    this.companySubmissions[companyIndex].locations[locationIndex].roleList.splice(roleIndex, 1);
   }
-  
-  .example-accordion-item {
-    display: block;
-    border: solid 1px #ccc;
-  }
-  
-  .example-accordion-item + .example-accordion-item {
-    border-top: none;
-  }
-  
-  .example-accordion-item-header {
-    display: flex;
-    align-content: center;
-    justify-content: space-between;
-  }
-  
-  .example-accordion-item-description {
-    font-size: 0.85em;
-    color: #999;
-  }
-  
-  .example-accordion-item-header,
-  .example-accordion-item-body {
-    padding: 16px;
-  }
-  
-  .example-accordion-item-header:hover {
-    cursor: pointer;
-    background-color: #eee;
-  }
-  
-  .example-accordion-item:first-child {
-    border-top-left-radius: 4px;
-    border-top-right-radius: 4px;
-  }
-  
-  .example-accordion-item:last-child {
-    border-bottom-left-radius: 4px;
-    border-bottom-right-radius: 4px;
-  }
-  .loading-container {
-    margin-left: 1em;
-    display: flex; 
-    gap: 0.75em; 
-    font-size: 2em; 
-  }
-  .loading-container>.spinner {
-    width: 2.5em !important;
-    height: 2.5em !important;
-  }
-  .loading-text {
-    margin-top: auto;
-    margin-bottom: auto;
-  }
-
-  .analytics-section {
-    margin-top: 2rem;
-    margin-bottom: 2rem;
-  
-    .analytics-card {
-      background: #ffffff;
-      border-radius: 0.5rem;
-      box-shadow: 0 0.125rem 0.5rem rgba(0, 0, 0, 0.1);
-      margin-bottom: 1rem;
-      overflow: hidden;
-  
-      .card-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 1rem 1.5rem;
-        border-bottom: none;
-  
-        .card-title {
-          margin: 0;
-          font-size: 1.1rem;
-          font-weight: 600;
-          color: white;
+  submitMraRequest() {
+    console.log("Field Errors: ", this.fieldErrors);
+    let validated = this.fieldErrors.length > 0;
+    if (validated) {
+      this.snackBar.open(
+        `Refer to the (i) icons for the validation errors`,
+        'Close',
+        {
+          duration: 2500,
+          panelClass: 'errorSnack',
         }
-      }
-  
-      .card-body {
-        padding: 1.5rem;
-        min-height: 25rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        overflow: visible;
-      }
+      );
     }
-
-
-::ng-deep {
-  ngx-charts-advanced-pie-chart {
-    display: flex !important;
-    flex-direction: row !important;
-    justify-content: center !important;
-    align-items: center !important;
-    width: 100% !important;
-    height: 100% !important;
-    overflow: visible !important;
-    position: relative !important;
-    min-height: 20rem !important;
-    gap: 1.5rem !important;
-
-    .advanced-pie,.chart {
-      padding: 0 !important;
-      width: 100% !important;
-      height: auto !important;
-      max-width: 12rem !important;
-      max-height: 12rem !important;
-      min-width: 10rem !important;
-      min-height: 10rem !important;
-      overflow: visible !important;
-      position: relative !important;
-      flex-shrink: 0 !important;
-    }
-
-    .advanced-pie {
-      flex: 0 1 auto !important;
-      max-width: 100% !important;
-      width: 100% !important;
-      min-height: 10rem !important;
-      display: flex !important;
-      align-items: center !important;
-      justify-content: center !important;
-      overflow: visible !important;
-      position: relative !important;
-
-      
-      svg {
-        width: 100% !important;
-        height: 100% !important;
-        max-width: 100% !important;
-        max-height: 100% !important;
-        min-width: 8rem !important;
-        min-height: 8rem !important;
-        overflow: visible !important;
-        position: relative !important;
-      }
-
-      path {
-        stroke-width: 0.125rem !important;
-      }
-      .pie-label {
-        font-size: 0.625rem !important;
-        font-weight: 600 !important;
-        fill: #333 !important;
-        text-shadow: 0.0625rem 0.0625rem 0.125rem rgba(255, 255, 255, 0.8) !important;
-      }
-    }
-    .advanced-pie-legend-wrapper {
-      width: 100% !important;
-      max-width: 100% !important;
-      overflow: visible !important;
-      position: relative !important;
-      display: flex !important;
-      align-items: center !important;
-      justify-content: center !important;
-      text-align: center !important;
-
-        .advanced-pie-legend {
-        width: 100% !important;
-        max-width: 100% !important;
-        padding: 0.125rem 0.0625rem 0.0625rem 0.0625rem !important;
-        display: flex !important;
-        flex-direction: row !important;
-        flex-wrap: wrap !important;
-        gap: 0.25rem !important;
-        justify-content: center !important;
-        align-items: center !important;
-        overflow: visible !important;
-        position: relative !important;
-        text-align: center !important;
-        
-        .total-value {
-          padding-left: 0.0625rem !important;
-          font-size: 0.5625rem !important;
-        }
-        .legend-item {
-          display: inline-flex !important;
-          align-items: center !important;
-          justify-content: center !important;
-          font-size: 0.5625rem !important;
-          font-weight: 500 !important;
-          color: #333 !important;
-          padding: 0.125rem 0.25rem !important;
-          background: rgba(255,255,255,0.9) !important;
-          border-radius: 0.1875rem !important;
-          box-shadow: 0 0.0625rem 0.25rem rgba(0, 0, 0, 0.1) !important;
-          min-width: 4rem !important;
-          max-width: 6rem !important;
-          width: auto !important;
-          flex: 0 0 auto !important;
-          overflow: visible !important;
-          position: relative !important;
-          margin: 0.0625rem !important;
-          float: none !important;
-
-          .legend-label {
-            font-weight: 600 !important;
-            color: #333 !important;
-            margin-left: 0.125rem !important;
-            white-space: normal !important;
-            overflow: visible !important;
-            text-overflow: clip !important;
-            max-width: 2.5rem !important;
-            width: auto !important;
-            word-wrap: break-word !important;
-            text-align: center !important;
-          }
-          
-          .legend-value {
-            font-weight: 600 !important;
-            color: #555 !important;
-            margin-left: 0.125rem !important;
-            min-width: 0.75rem !important;
-            width: auto !important;
-            text-align: right !important;
-          }
-          
-          .legend-percent {
-            font-weight: 500 !important;
-            color: #666 !important;
-            margin-left: 0.125rem !important;
-            min-width: 1.125rem !important;
-            width: auto !important;
-            text-align: right !important;
-          }
-        }
-      }    
-    }
-
-  }
-  
-              .ngx-charts-bar-vertical {
-          width: 100% !important;
-          height: 100% !important;
-        
-        .x-axis {
-          .tick {
-            text {
-              font-size: 0.6875rem;
-              font-weight: 500;
-              fill: #555;
-            }
-          }
-        }
-  
-        .y-axis {
-          .tick {
-            text {
-              font-size: 0.6875rem;
-              font-weight: 500;
-              fill: #555;
-            }
-          }
-        }
-  
-        .x-axis-label, .y-axis-label {
-          font-size: 0.75rem;
-          font-weight: 600;
-          fill: #333;
-        }
-  
-        .legend {
-          .legend-title {
-            font-size: 0.875rem;
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 0.5rem;
-          }
-  
-          .legend-labels {
-            .legend-label {
-              font-size: 0.75rem;
-              font-weight: 500;
-              color: #555;
-              line-height: 1.4;
-              margin-bottom: 0.25rem;
-  
-              .legend-label-text {
-                color: #333;
-                font-weight: 600;
-              }
-  
-              .legend-label-color {
-                border-radius: 0.1875rem;
-                margin-right: 0.5rem;
-              }
-            }
-          }
-        }
-      }
-  
-
-              .chart-container {
-          width: 100% !important;
-          height: 100% !important;
-          min-height: 21.875rem !important;
-          display: flex !important;
-          align-items: center !important;
-          justify-content: center !important;
-          overflow: visible !important;
-        }
-      
-              .ngx-charts-outer {
-          width: 100% !important;
-          height: 100% !important;
-          overflow: visible !important;
-        }
-
-
-      // Override ngx-charts legend styling for full text visibility
-    ngx-charts-legend {
-      width: 100%;
-      max-width: 100%;
-      
-      // Target the inner div that contains the legend text
-      > div {
-        width: 100%;
-        max-width: none;
-        white-space: normal;
-        word-wrap: break-word;
-        overflow: visible;
-      }
-      
-      // Ensure legend labels don't get cut off
-      .legend-label {
-        width: 100%;
-        max-width: none;
-        white-space: normal;
-        word-wrap: break-word;
-        overflow: visible;
-        
-        .legend-label-text {
-          max-width: none;
-          white-space: normal;
-          word-wrap: break-word;
-          overflow: visible;
-        }
-      }
-    }
-
-    }
-  
-
-          // Large screens (1200px and up)
-      @media (min-width: 1200px) {
-        .analytics-card {
-          .card-body {
-            min-height: 28.125rem;
-            padding: 2rem;
-          }
-        }
-        
-        ::ng-deep {
-          ngx-charts-advanced-pie-chart {
-            .advanced-pie,.chart {
-              max-width: 16rem;
-              max-height: 16rem;
-            }
-            
-            .advanced-pie-legend-wrapper {
-              max-width: 100%;
-            }
-          }
-          
-          .ngx-charts-bar-vertical {
-            .x-axis, .y-axis {
-              .tick text {
-                font-size: 0.75rem;
-              }
-            }
-          }
-        }
-      }
-
-          // Medium screens (768px to 1199px)
-      @media (min-width: 768px) and (max-width: 1199px) {
-        .analytics-card {
-          .card-body {
-            min-height: 25rem;
-            padding: 1.5rem;
-          }
-        }
-        
-        ::ng-deep {
-          ngx-charts-advanced-pie-chart {
-            .advanced-pie,.chart {
-              max-width: 14rem;
-              max-height: 14rem;
-            }
-            
-            .advanced-pie-legend-wrapper {
-              max-width: 100%;
-            }
-          }
-        }
-      }
-
-                 // Small screens (576px to 767px)
-      @media (min-width: 576px) and (max-width: 767px) {
-        .analytics-card {
-          .card-body {
-            min-height: 21.875rem;
-            padding: 1rem;
-          }
-        }
-        
-        ::ng-deep {
-          ngx-charts-advanced-pie-chart {
-            .advanced-pie,.chart {
-              max-width: 13rem;
-              max-height: 13rem;
-              padding: 0;
-            }
-            
-            .advanced-pie-legend-wrapper {
-              max-width: 14rem;
-              
-              .advanced-pie-legend {
-                gap: 0.125rem;
-                padding: 0.125rem 0.0625rem 0.0625rem 0.0625rem;
-                
-                .legend-item {
-                  font-size: 0.5rem !important;
-                  padding: 0.0625rem 0.125rem !important;
-                  min-width: 3rem !important;
-                  max-width: 4.5rem !important;
-                  width: auto !important;
-                  
-                  .legend-label {
-                    max-width: 2rem !important;
-                    width: auto !important;
-                    margin-left: 0.0625rem !important;
-                    white-space: normal !important;
-                    overflow: visible !important;
-                  }
-                  
-                  .legend-value {
-                    min-width: 0.625rem;
-                    margin-left: 0.0625rem;
-                  }
-                  
-                  .legend-percent {
-                    min-width: 0.875rem;
-                    margin-left: 0.0625rem;
+    else {
+      this.submission.companies = this.companySubmissions;
+      // creates the submission to submit the MRA Request
+      let submission: MraRequestSubmissionPayload = {
+        G2GMessage: {
+          messageHeader: {
+            messageType: variables.messageType,
+            messageSpecification: variables.messageSpecification,
+            messageSpecificationVersion: variables.messageSpecificationVersion,
+            messageId: '',
+            messageSentDate: new Date(),
+            messageSenderId: '',
+            messageSenderCountryCode: this.utils.translateCountryToCode(this.submission.country),
+            comment: this.submission.comment
+          },
+          messageBody: {
+            MRABenefitsRequest: {
+              MRARequestId: '',
+              hostCountryCode: this.submission.country,
+              AEOProgramName: this.submission.aeo_program,
+              companyInfoList: this.submission.companies.map((company) => {
+                return {
+                  companyInfo: {
+                    G2GCompanyID: company.g2g_id,
+                    TIN: company.tin,
+                    companyName: company.name,
+                    hostCountryCompanyId: company.hostCountryID,
+                    hostCountryCompanyIdType: company.hostCountryIDType,
+                    AEOAccountNumber: company.aeoAccountNumber,
+                    companyLocationList: company.locations.map((location) => {
+                      return {
+                        companyLocation: {
+                          isPrimaryLocation: location.primaryLocation,
+                          companyAddress: {
+                            addressLine1: location.addressLine1,
+                            addressLine2: location.addressLine2,
+                            city: location.city,
+                            stateOrProvince: location.stateOrProvince,
+                            postalCode: location.postalCode,
+                            countryCode: this.utils.translateCountryToCode(location.country)
+                          },
+                          supplyChainRoleList: location.roleList,
+                          alternateID: location.alternateID.map((altID) => {
+                            return {
+                              type: altID.type,
+                              ID: altID.id
+                            }
+                          })
+                        }
+                      }
+                    })
                   }
                 }
-              }
+              })
             }
           }
-          
-          .ngx-charts-bar-vertical {
-            .x-axis, .y-axis {
-              .tick text {
-                font-size: 0.625rem;
-              }
+        }
+      }
+      console.log("MRA Request Submission: ", submission)
+      this.sendingRequest = true;
+      this.backendAPI.submitMraRequest(submission).subscribe({
+        next: () => {
+          this.actualSubmission = submission;
+          this.snackBar.open(
+            `Message sent successfully. Refer to the JSON Below to see what was sent.`,
+            'Close',
+            {
+              duration: 2500,
+              panelClass: 'errorSnack',
             }
-            
-            .x-axis-label, .y-axis-label {
-              font-size: 0.6875rem;
+          );
+          this.sendingRequest = false;
+        },
+        error: (err) => {
+          console.log("Error: ", err)
+          this.sendingRequest = false;
+        }
+      })
+    }
+  }
+
+  onFileChange(event: any) {
+    this.submitted = true;
+    if (event.target.files.length > 0) {
+      this.file = event.target.files[0];
+      this.uploadEvent = event;
+    }
+    let fileReader = new FileReader();
+    fileReader.onload = (e) => {
+      this.arrayBuffer = fileReader.result;
+      const data = new Uint8Array(this.arrayBuffer);
+      const arr = new Array();
+      for (let i = 0; i != data.length; ++i)
+        arr[i] = String.fromCharCode(data[i]);
+      const bstr = arr.join("");
+      const workbook = read(bstr, {
+        type: "binary"
+      });
+      const first_sheet_name = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[first_sheet_name];
+      this.exceljsondata = utils.sheet_to_json(worksheet, {
+        raw: true,
+        defval: "",
+      });
+      console.log(this.exceljsondata);
+      this.submitted = false;
+
+      let functionCol2 = "List function needed for record: Add / Revoke / Edit";
+      let functionCol1 = "List function needed for record";
+
+      this.processedDataCount = 0;
+      for (let i = 0; this.exceljsondata.length && i < 100; i++) {
+        const row = this.exceljsondata[i];
+        console.log(row);
+        if (row && row !== undefined && row[functionCol1] && row[functionCol1] !== undefined &&
+          (row[functionCol1] === 'Add' || row[functionCol1] === 'Update' || row[functionCol1] === 'Suspend') &&
+          row['BEI Value'] !== undefined && row['BEI Value'] !== '') {
+          this.processedData[this.processedDataCount] = [];
+          console.log(row);
+
+
+
+          for (let col = 0; col < this.excelHeader.length && col < 100; col++) {
+            this.processedData[this.processedDataCount][this.excelHeader[col]] = '';  //assign a blank value before we assign what's in the excel file incase excel file is blank
+            if (row[this.excelHeader[col]] !== undefined) {
+              console.log(row[this.excelHeader[col]]);
+              this.processedData[this.processedDataCount][this.excelHeader[col]] = row[this.excelHeader[col]];
             }
           }
+          this.processedDataCount++;
         }
       }
 
-                 // Extra small screens (up to 575px)
-      @media (max-width: 575px) {
-        .analytics-card {
-          .card-body {
-            min-height: 18.75rem;
-            padding: 0.75rem;
-          }
-        }
-        
-        ::ng-deep {
-          ngx-charts-advanced-pie-chart {
-            .advanced-pie,.chart {
-              max-width: 10rem;
-              max-height: 10rem;
-              padding: 0;
-            }
-            
-            .advanced-pie-legend-wrapper {
-              max-width: 100%;
-              
-              .advanced-pie-legend {
-                flex-direction: column;
-                gap: 0.0625rem;
-                padding: 0.125rem 0.0625rem 0.0625rem 0.0625rem;
-                
-                .legend-item {
-                  font-size: 0.4375rem !important;
-                  padding: 0.03125rem 0.0625rem !important;
-                  min-width: 2.5rem !important;
-                  max-width: none !important;
-                  width: 100% !important;
-                  justify-content: space-between !important;
-                  
-                  .legend-label {
-                    max-width: none !important;
-                    width: auto !important;
-                    margin-left: 0.0625rem !important;
-                    flex: 1 !important;
-                    white-space: normal !important;
-                    overflow: visible !important;
-                  }
-                  
-                  .legend-value {
-                    min-width: 0.5rem;
-                    margin-left: 0.0625rem;
-                  }
-                  
-                  .legend-percent {
-                    min-width: 0.75rem;
-                    margin-left: 0.0625rem;
-                  }
+      console.log(this.processedData);
+      console.log(this.processedDataCount);
+    };
+    fileReader.readAsArrayBuffer(this.file);
+  }
+  uploadExcelToForm(event: any) {
+    console.log("Uploading Excel...")
+    if (event.target.files.length > 0) {
+      this.file = event.target.files[0];
+      this.uploadEvent = event;
+    }
+    let fileReader = new FileReader();
+    fileReader.onload = () => {
+      this.arrayBuffer = fileReader.result;
+      // conversion work
+      const data = new Uint8Array(this.arrayBuffer);
+      const arr = new Array();
+      for (let i = 0; i != data.length; ++i)
+        arr[i] = String.fromCharCode(data[i]);
+      const bstr = arr.join("");
+      const workbook = read(bstr, {
+        type: "binary"
+      });
+      const worksheet = workbook.Sheets[workbook.SheetNames[0]]; // gets the worksheet name
+      let sheet = utils.sheet_to_json(worksheet, {
+        raw: true,
+        defval: "",
+      });
+      let companyClusters = this.convertClusterToSmallerCluster(sheet, "company")
+      this.companySubmissions = companyClusters.map((company: any) => {
+        let companyReference = company[0];
+        return {
+          name: companyReference["Company Name"],
+          g2g_id: companyReference["G2G ID"],
+          tin: companyReference["TIN"],
+          hostCountryID: companyReference["Host Country ID"],
+          hostCountryIDType: companyReference["Host Country ID Type"],
+          aeoAccountNumber: companyReference["AEO Account Number"],
+          locations: this.convertClusterToSmallerCluster(company, "location").map((location) => {
+            let locationReference = location[0]
+            return {
+              primaryLocation: locationReference["Primary Location?"],
+              addressLine1: locationReference["Address Line 1"],
+              addressLine2: locationReference["Address Line 2"] || "",
+              city: locationReference["City"],
+              stateOrProvince: locationReference["State or Province"],
+              country: locationReference["Country"],
+              postalCode: locationReference["Postal Code"],
+              roleInput: "",
+              roleList: locationReference["Roles"].split(",") || [],
+              alternateID: location.map((alternateID: any) => {
+                return {
+                  type: alternateID["Alternate ID Type"],
+                  id: alternateID["Alternate ID"]
                 }
-              }
+              })
             }
-            
-            .pie-label {
-              font-size: 0.5rem !important;
-            }
-          }
-          
-          .ngx-charts-bar-vertical {
-            .x-axis, .y-axis {
-              .tick text {
-                font-size: 0.5625rem;
-              }
-            }
-            
-            .x-axis-label, .y-axis-label {
-              font-size: 0.625rem;
-            }
-            
-            .legend {
-              .legend-title {
-                font-size: 0.75rem;
-              }
-              
-              .legend-labels {
-                .legend-label {
-                  font-size: 0.625rem;
-                }
-              }
-            }
-          }
+          })
         }
+      })
+      console.log("Excel Data: ", sheet);
+      console.log("Clusters relating to it: ", companyClusters);
+      console.log("Company Submissions: ", this.companySubmissions);
+    }
+    fileReader.readAsArrayBuffer(this.file);
+  }
+  convertClusterToSmallerCluster(cluster: any, type: string) {
+    let result: any[] = []
+    let currentCluster = [cluster[0]];  // assumes that the first guy is probably good
+    let newCluster = false;
+    for (let row of cluster.slice(1)) {
+      // based on type of cluster, the conditions to identify new cluster will change
+      switch (type) {
+        case "company":
+          newCluster = row["Company Name"].length > 0
+          break;
+        case "location":
+          newCluster = row["Address Line 1"].length > 0
+          break;
       }
+      if (newCluster) {
+        result.push(currentCluster); // gets the last cluster and now it updates to the new cluster
+        currentCluster = [row];
+      }
+      else {
+        currentCluster.push(row);
+      }
+    }
+    result.push(currentCluster); // retrieves the last cluster that isn't added yet 
+    return result;
+  }
+  convertCompanyClusterToLocationClusters(companyCluster: any) {
 
-    // Landscape orientation on mobile
-    @media (max-width: 767px) and (orientation: landscape) {
-      .analytics-card {
-        .card-body {
-          min-height: 15.625rem;
-        }
-      }
-      
-      ::ng-deep {
-        ngx-charts-advanced-pie-chart {
-          .advanced-pie,.chart {
-            max-height: 12.5rem;
-          }
-          
-          .advanced-pie-legend-wrapper {
-            .advanced-pie-legend {
-              flex-direction: row;
-              flex-wrap: wrap;
-            }
-          }
-        }
-      }
-    }
-  
-    @media (prefers-color-scheme: dark) {
-      .analytics-card {
-        .card-header {
-          background: rgb(0, 60, 110);
-        }
-      }
-  
-      ::ng-deep {
-        .ngx-charts-pie-chart,
-        .ngx-charts-bar-vertical {
-          .legend {
-            .legend-title {
-              color: #e2e8f0;
-            }
-  
-            .legend-labels {
-              .legend-label {
-                color: #cbd5e0;
-  
-                .legend-label-text {
-                  color: #e2e8f0;
-                }
-              }
-            }
-          }
-  
-          .x-axis, .y-axis {
-            .tick text {
-              fill: #cbd5e0;
-            }
-          }
-  
-          .x-axis-label, .y-axis-label {
-            fill: #e2e8f0;
-          }
-  
-          .pie-label {
-            fill: #e2e8f0;
-            text-shadow: 0.0625rem 0.0625rem 0.125rem rgba(0, 0, 0, 0.8);
-          }
-        }
-      }
-    }
   }
-  
-  .chart-legend-container {
-    padding: 1rem;
-    background: rgba(255, 255, 255, 0.95);
-    border-radius: 0.375rem;
-    margin-top: 1rem;
-    box-shadow: 0 0.0625rem 0.1875rem rgba(0, 0, 0, 0.1);
-  
-    .legend-item {
-      display: flex;
-      align-items: center;
-      margin-bottom: 0.5rem;
-      font-size: 0.8125rem;
-      font-weight: 500;
-  
-      .legend-color {
-        width: 1rem;
-        height: 1rem;
-        border-radius: 0.1875rem;
-        margin-right: 0.5rem;
-        border: 0.0625rem solid rgba(0, 0, 0, 0.1);
-      }
-  
-      .legend-text {
-        color: #333;
-        font-weight: 600;
-      }
-    }
+
+  addCompanyRow() {
+    this.companySubmissions.push({ ...emptyMraRequestCompanySubmission });
   }
-  
-  @media (prefers-contrast: high) {
-    .analytics-section {
-      ::ng-deep {
-        .ngx-charts-pie-chart,
-        .ngx-charts-bar-vertical {
-          .legend {
-            .legend-labels {
-              .legend-label {
-                .legend-label-text {
-                  font-weight: 700;
-                  color: #000;
-                }
-              }
-            }
-  
-            .x-axis, .y-axis {
-              .tick text {
-                font-weight: 700;
-                fill: #000;
-              }
-            }
-  
-            .x-axis-label, .y-axis-label {
-              font-weight: 700;
-              fill: #000;
-            }
-          }
-        }
-      }
-    }
+  removeCompanyRow(index: number) {
+    console.log('removeRow: ' + index);
+    this.companySubmissions.splice(index, 1);
   }
+
+  usStates = states;
+
+  apiCompanies: any = {};
+
+  submitToSelectedCountry() {
+
+    this.sendingRequest = true;
+    setTimeout(() => {
+      this.sendingRequest = false;
+    }, 3500);
+    this.saveOrUpdateCompany();
+  }
+
+
+  saveOrUpdateCompany() {
+
+
+  }
+
+}
