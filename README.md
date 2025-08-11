@@ -9,7 +9,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.ResourceAccessException;
 
 import java.util.List;
 import java.util.Arrays;
@@ -20,17 +19,14 @@ public class InternalApiClientNoComments {
     
     private final RestTemplate restTemplate;
     private final String internalApiBaseUrl;
-    private final String internalApiUsername;
-    private final String internalApiPassword;
+    private final String oauth2Token;
     
     public InternalApiClientNoComments(
             @Value("${internal.api.base-url:http://localhost:8080}") String internalApiBaseUrl,
-            @Value("${internal.api.username:admin}") String internalApiUsername,
-            @Value("${internal.api.password:admin123}") String internalApiPassword) {
+            @Value("${internal.api.oauth2.token:}") String oauth2Token) {
         this.restTemplate = new RestTemplate();
         this.internalApiBaseUrl = internalApiBaseUrl;
-        this.internalApiUsername = internalApiUsername;
-        this.internalApiPassword = internalApiPassword;
+        this.oauth2Token = oauth2Token;
     }
     
     public List<VcidStatusResponse> getVcidStatuses(String vcid) {
@@ -52,8 +48,6 @@ public class InternalApiClientNoComments {
                 
         } catch (HttpClientErrorException e) {
             throw new RuntimeException("Failed to retrieve VCID statuses: " + e.getMessage(), e);
-        } catch (ResourceAccessException e) {
-            throw new RuntimeException("Internal API is not accessible: " + e.getMessage(), e);
         }
     }
     
@@ -75,24 +69,14 @@ public class InternalApiClientNoComments {
                 
         } catch (HttpClientErrorException e) {
             throw new RuntimeException("Failed to retrieve all VCID statuses: " + e.getMessage(), e);
-        } catch (ResourceAccessException e) {
-            throw new RuntimeException("Internal API is not accessible: " + e.getMessage(), e);
-        }
-    }
-    
-    public boolean isInternalApiHealthy() {
-        try {
-            String url = internalApiBaseUrl + "/api/workflow/health";
-            ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
-            return response.getStatusCode().is2xxSuccessful();
-        } catch (Exception e) {
-            return false;
         }
     }
     
     private HttpHeaders createAuthHeaders() {
         HttpHeaders headers = new HttpHeaders();
-        headers.setBasicAuth(internalApiUsername, internalApiPassword);
+        if (oauth2Token != null && !oauth2Token.trim().isEmpty()) {
+            headers.setBearerAuth(oauth2Token);
+        }
         return headers;
     }
     
