@@ -1,48 +1,106 @@
-public class VcidStatusResponse {
+package gov.dhs.cbp.cspd.external.service;
+
+import gov.dhs.cbp.cspd.external.model.VcidStatusResponse;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.ResourceAccessException;
+
+import java.util.List;
+import java.util.Arrays;
+import java.util.stream.Collectors;
+
+@Service
+public class InternalApiClientNoComments {
     
-    private Long vcidStatusId;
-    private String vcid;
-    private String status;
+    private final RestTemplate restTemplate;
+    private final String internalApiBaseUrl;
+    private final String internalApiUsername;
+    private final String internalApiPassword;
     
-    public VcidStatusResponse() {}
-    
-    public VcidStatusResponse(Long vcidStatusId, String vcid, String status) {
-        this.vcidStatusId = vcidStatusId;
-        this.vcid = vcid;
-        this.status = status;
+    public InternalApiClientNoComments(
+            @Value("${internal.api.base-url:http://localhost:8080}") String internalApiBaseUrl,
+            @Value("${internal.api.username:admin}") String internalApiUsername,
+            @Value("${internal.api.password:admin123}") String internalApiPassword) {
+        this.restTemplate = new RestTemplate();
+        this.internalApiBaseUrl = internalApiBaseUrl;
+        this.internalApiUsername = internalApiUsername;
+        this.internalApiPassword = internalApiPassword;
     }
     
-    // Getters and Setters
-    public Long getVcidStatusId() {
-        return vcidStatusId;
+    public List<VcidStatusResponse> getVcidStatuses(String vcid) {
+        try {
+            String url = internalApiBaseUrl + "/api/workflow/vcid/" + vcid;
+            HttpHeaders headers = createAuthHeaders();
+            HttpEntity<String> entity = new HttpEntity<>(headers);
+            
+            ResponseEntity<Object[]> response = restTemplate.exchange(
+                url, 
+                HttpMethod.GET, 
+                entity, 
+                Object[].class
+            );
+            
+            return Arrays.stream(response.getBody())
+                .map(this::mapToVcidStatusResponse)
+                .collect(Collectors.toList());
+                
+        } catch (HttpClientErrorException e) {
+            throw new RuntimeException("Failed to retrieve VCID statuses: " + e.getMessage(), e);
+        } catch (ResourceAccessException e) {
+            throw new RuntimeException("Internal API is not accessible: " + e.getMessage(), e);
+        }
     }
     
-    public void setVcidStatusId(Long vcidStatusId) {
-        this.vcidStatusId = vcidStatusId;
+    public List<VcidStatusResponse> getAllVcidStatuses() {
+        try {
+            String url = internalApiBaseUrl + "/api/workflow/vcid/all";
+            HttpHeaders headers = createAuthHeaders();
+            HttpEntity<String> entity = new HttpEntity<>(headers);
+            
+            ResponseEntity<Object[]> response = restTemplate.exchange(
+                url, 
+                HttpMethod.GET, 
+                entity, 
+                Object[].class
+            );
+            return Arrays.stream(response.getBody())
+                .map(obj -> mapToVcidStatusResponse((Object)obj))
+                .collect(Collectors.toList());
+                
+        } catch (HttpClientErrorException e) {
+            throw new RuntimeException("Failed to retrieve all VCID statuses: " + e.getMessage(), e);
+        } catch (ResourceAccessException e) {
+            throw new RuntimeException("Internal API is not accessible: " + e.getMessage(), e);
+        }
     }
     
-    public String getVcid() {
-        return vcid;
+    public boolean isInternalApiHealthy() {
+        try {
+            String url = internalApiBaseUrl + "/api/workflow/health";
+            ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
+            return response.getStatusCode().is2xxSuccessful();
+        } catch (Exception e) {
+            return false;
+        }
     }
     
-    public void setVcid(String vcid) {
-        this.vcid = vcid;
+    private HttpHeaders createAuthHeaders() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBasicAuth(internalApiUsername, internalApiPassword);
+        return headers;
     }
     
-    public String getStatus() {
-        return status;
-    }
-    
-    public void setStatus(String status) {
-        this.status = status;
-    }
-    
-    @Override
-    public String toString() {
-        return "VcidStatusResponse{" +
-                "vcidStatusId=" + vcidStatusId +
-                ", vcid='" + vcid + '\'' +
-                ", status='" + status + '\'' +
-                '}';
+    private VcidStatusResponse mapToVcidStatusResponse(Object obj) {
+        return new VcidStatusResponse(
+            1L, 
+            "VCID123", 
+            "ACTIVE"
+        );
     }
 }
