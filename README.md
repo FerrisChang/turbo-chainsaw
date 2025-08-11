@@ -1,26 +1,48 @@
-
-    @GetMapping("/vcid/{vcid}")
-    public ResponseEntity<List<VcidStatusResponse>> getVcidStatuses(
-            @Parameter(description = "VCID to search for", required = true)
-            @PathVariable String vcid) {
-        
-        try {
-            List<VcidStatusResponse> statuses = internalApiClient.getVcidStatuses(vcid);
-            return ResponseEntity.ok(statuses);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().build();
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
-        }
+public class VcidStatusResponse {
+    
+    private Long vcidStatusId;
+    private String vcid;
+    private String status;
+    
+    public VcidStatusResponse() {}
+    
+    public VcidStatusResponse(Long vcidStatusId, String vcid, String status) {
+        this.vcidStatusId = vcidStatusId;
+        this.vcid = vcid;
+        this.status = status;
     }
-
-
-     @GetMapping("/vcid/all")
-    public ResponseEntity<List<VcidStatusResponse>> getAllVcidStatuses() {
-        try {
-            List<VcidStatusResponse> statuses = internalApiClient.getAllVcidStatuses();
-            return ResponseEntity.ok(statuses);
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
-        }
+    
+    // Getters and Setters
+    public Long getVcidStatusId() {
+        return vcidStatusId;
     }
+    
+    public void setVcidStatusId(Long vcidStatusId) {
+        this.vcidStatusId = vcidStatusId;
+    }
+    
+    public String getVcid() {
+        return vcid;
+    }
+    
+    public void setVcid(String vcid) {
+        this.vcid = vcid;
+    }
+    
+    public String getStatus() {
+        return status;
+    }
+    
+    public void setStatus(String status) {
+        this.status = status;
+    }
+    
+    @Override
+    public String toString() {
+        return "VcidStatusResponse{" +
+                "vcidStatusId=" + vcidStatusId +
+                ", vcid='" + vcid + '\'' +
+                ", status='" + status + '\'' +
+                '}';
+    }
+}
