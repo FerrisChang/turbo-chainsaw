@@ -1,1 +1,981 @@
 
+<!-- Analytics Section -->
+<div class="analytics-section container-fluid" *ngIf="selectedCountry">
+    <div class="row">
+        <div class="col-12">
+            <div class="analytics-card">
+                <div class="card-header">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <h4 class="card-title">
+                                <i class="bi bi-graph-up me-2"></i>
+                                Analytics Dashboard
+                            </h4>
+                        </div>
+                        <div class="col-auto">
+                            <button class="btn btn-sm px-2 pt-1 pb-1 mb-0 mt-0 text-light" [matMenuTriggerFor]="analyticsMenu">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                                    class="bi bi-three-dots-vertical" viewBox="0 0 16 16">
+                                    <path
+                                        d="M9.5 13a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z" />
+                                </svg>
+                            </button>
+                            <mat-menu #analyticsMenu="matMenu">
+                                <button mat-menu-item>
+                                    <i class="bi bi-download me-2"></i>Export
+                                </button>
+                                <button mat-menu-item>
+                                    <i class="bi bi-funnel me-2"></i>Filter
+                                </button>
+                            </mat-menu>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Tab Navigation -->
+                    <mat-tab-group>
+                        <mat-tab *ngIf="hasPieChartData()" label="Company Status Distribution">
+                            <div class="chart-container">
+                                <ngx-charts-advanced-pie-chart 
+                                    [view]="viewPie" 
+                                    [results]="mraApprovalData" 
+                                    [gradient]="gradient"
+                                    [scheme]="colorScheme" 
+                                    [tooltipDisabled]="false"
+                                    (select)="onSelect($event)">
+                                </ngx-charts-advanced-pie-chart>
+                            </div>
+                        </mat-tab>
+
+                        <mat-tab label="MRA Companies by Country">
+                            <div class="chart-container">
+                                <ngx-charts-bar-vertical 
+                                    [view]="view2" 
+                                    [results]="mraCountryData" 
+                                    [gradient]="gradient"
+                                    [xAxis]="showXAxis" 
+                                    [yAxis]="showYAxis" 
+                                    [legend]="showLegend"
+                                    [showXAxisLabel]="showXAxisLabel" 
+                                    [showYAxisLabel]="showYAxisLabel"
+                                    [xAxisLabel]="xAxisLabel" 
+                                    [yAxisLabel]="yAxisLabel" 
+                                    [scheme]="colorScheme"
+                                    [tooltipDisabled]="false"
+                                    (select)="onSelect($event)">
+                                </ngx-charts-bar-vertical>
+                            </div>
+                        </mat-tab>
+                    </mat-tab-group>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div #tooltip [style.visibility]="selectedCountry ? 'visible' :'hidden'">
+</div>
+<div class="container-fluid pt-2 mt-1 pb-5 mb-5" style="height: 50px;">
+</div>
+</div>
+
+
+
+
+
+
+
+#map {
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height:  460px;
+}
+.country-input {
+width: 30%;
+}
+.country-row {
+display: flex; 
+}
+.flag-network-icon {
+margin-right: 1em; 
+width: 4em; 
+height: 4em;
+}
+.card-title>.title-header {
+font-size: 1.5em; 
+font-weight: 550;
+margin-top: 0.5em;
+margin-bottom: 0.5em;
+}
+.card-title>.title-description {
+margin-top: 0.5em; 
+margin-left: 1em;
+font-size: 1.1em;
+}
+.companies-table-layout {
+height: 50em;
+display: flex; 
+gap: 2em;
+}
+.companies-table-frame {
+flex: 1;
+height: 100%;
+}
+
+.companies-table-frame>.card-body{
+max-height: 100%; 
+overflow-y: hidden
+} 
+  body {
+      min-height: 100vh;
+      min-height: -webkit-fill-available;
+    }
+    
+    html {
+      height: -webkit-fill-available;
+    }
+    
+    main {
+      height: 100vh;
+      height: -webkit-fill-available;
+      max-height: 100vh;
+      overflow-x: auto;
+      overflow-y: hidden;
+    }
+    
+    .dropdown-toggle { outline: 0; }
+    
+    .btn-toggle {
+      padding: .25rem .5rem;
+      font-weight: 600;
+      color: var(--bs-emphasis-color);
+      background-color: transparent;
+    }
+    .btn-toggle:hover,
+    .btn-toggle:focus {
+      color: rgba(var(--bs-emphasis-color-rgb), .85);
+      background-color: var(--bs-tertiary-bg);
+    }
+     
+    
+    .btn-toggle[aria-expanded="true"] {
+      color: rgba(var(--bs-emphasis-color-rgb), .85);
+    }
+    .btn-toggle[aria-expanded="true"]::before {
+      transform: rotate(90deg);
+    }
+    
+    .btn-toggle-nav a {
+      padding: .1875rem .5rem;
+      margin-top: .125rem;
+      margin-left: 1.25rem;
+    }
+    .btn-toggle-nav a:hover,
+    .btn-toggle-nav a:focus {
+      background-color: var(--bs-tertiary-bg);
+    }
+    
+    .scrollarea {
+      overflow-y: auto;
+    }
+  
+  
+    .navbar-svg-icon {
+      position:relative;
+      top:-2px;
+      margin-right: 5px
+  }
+  
+  .navbar-svg-icon-inactive {
+    position:relative; 
+    margin-right: 5px
+  }
+  
+  .btn-filter {
+      box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+     ;
+  }
+  
+  .navbar-btn-hover:hover {
+    background-color: rgb(225, 236, 247);
+    border-radius: 5px;
+    
+  }
+  
+  
+  .btn-filter:hover {
+     color: rgb(8, 67, 230);
+  }
+  
+  mat-sidenav {
+    width: 350px;
+  }
+  
+.widget-card {
+box-shadow: 2px 2px 4px 1px rgba(0, 0, 0, 0.1);
+border-color: rgb(142, 153, 163);
+}
+
+
+  .card-hdr-class {
+    background:  rgb(0, 60, 110);
+    color: white;
+  }
+  
+  .example-accordion {
+    display: block;
+    max-width: 500px;
+  }
+  
+  .example-accordion-item {
+    display: block;
+    border: solid 1px #ccc;
+  }
+  
+  .example-accordion-item + .example-accordion-item {
+    border-top: none;
+  }
+  
+  .example-accordion-item-header {
+    display: flex;
+    align-content: center;
+    justify-content: space-between;
+  }
+  
+  .example-accordion-item-description {
+    font-size: 0.85em;
+    color: #999;
+  }
+  
+  .example-accordion-item-header,
+  .example-accordion-item-body {
+    padding: 16px;
+  }
+  
+  .example-accordion-item-header:hover {
+    cursor: pointer;
+    background-color: #eee;
+  }
+  
+  .example-accordion-item:first-child {
+    border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
+  }
+  
+  .example-accordion-item:last-child {
+    border-bottom-left-radius: 4px;
+    border-bottom-right-radius: 4px;
+  }
+  .loading-container {
+    margin-left: 1em;
+    display: flex; 
+    gap: 0.75em; 
+    font-size: 2em; 
+  }
+  .loading-container>.spinner {
+    width: 2.5em !important;
+    height: 2.5em !important;
+  }
+  .loading-text {
+    margin-top: auto;
+    margin-bottom: auto;
+  }
+
+  .analytics-section {
+    margin-top: 2rem;
+    margin-bottom: 2rem;
+  
+    .analytics-card {
+      background: #ffffff;
+      border-radius: 0.5rem;
+      box-shadow: 0 0.125rem 0.5rem rgba(0, 0, 0, 0.1);
+      margin-bottom: 1rem;
+      overflow: hidden;
+  
+      .card-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1rem 1.5rem;
+        border-bottom: none;
+  
+        .card-title {
+          margin: 0;
+          font-size: 1.1rem;
+          font-weight: 600;
+          color: white;
+        }
+      }
+  
+      .card-body {
+        padding: 1.5rem;
+        min-height: 25rem;
+        display: flex;
+        flex-direction: column;
+        overflow: visible;
+
+        // Material Tab Styles
+        mat-tab-group {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          
+          ::ng-deep {
+            .mat-mdc-tab-header {
+              border-bottom: 2px solid #e9ecef;
+              margin-bottom: 1.5rem;
+              
+              .mat-mdc-tab-label-container {
+                .mat-mdc-tab-label {
+                  color: #6c757d;
+                  font-weight: 500;
+                  padding: 0.75rem 1.5rem;
+                  transition: all 0.2s ease-in-out;
+                  border-bottom: 2px solid transparent;
+                  
+                  &:hover {
+                    color: #495057;
+                  }
+                  
+                  &.mat-mdc-tab-label-active {
+                    color: #667eea;
+                    border-bottom-color: #667eea;
+                    font-weight: 600;
+                  }
+                }
+                
+                .mat-mdc-tab-header-pagination {
+                  display: none;
+                }
+              }
+              
+              .mat-mdc-ink-bar {
+                background-color: #667eea;
+                height: 2px;
+              }
+            }
+            
+            .mat-mdc-tab-body-wrapper {
+              flex: 1;
+              display: flex;
+              flex-direction: column;
+              
+              .mat-mdc-tab-body {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                
+                .mat-mdc-tab-body-content {
+                  flex: 1;
+                  display: flex;
+                  flex-direction: column;
+                  overflow: visible;
+                  
+                  .chart-container {
+                    flex: 1;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    min-height: 21.875rem;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  ::ng-deep {
+    ngx-charts-advanced-pie-chart {
+      display: flex !important;
+      flex-direction: row !important;
+      justify-content: center !important;
+      align-items: center !important;
+      width: 100% !important;
+      height: 100% !important;
+      overflow: visible !important;
+      position: relative !important;
+      min-height: 20rem !important;
+      gap: 1.5rem !important;
+
+      .advanced-pie,.chart {
+        padding: 0 !important;
+        width: 100% !important;
+        height: auto !important;
+        max-width: 12rem !important;
+        max-height: 12rem !important;
+        min-width: 10rem !important;
+        min-height: 10rem !important;
+        overflow: visible !important;
+        position: relative !important;
+        flex-shrink: 0 !important;
+      }
+
+      .advanced-pie {
+        flex: 0 1 auto !important;
+        max-width: 100% !important;
+        width: 100% !important;
+        min-height: 10rem !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        overflow: visible !important;
+        position: relative !important;
+
+        
+        svg {
+          width: 100% !important;
+          height: 100% !important;
+          max-width: 100% !important;
+          max-height: 100% !important;
+          min-width: 8rem !important;
+          min-height: 8rem !important;
+          overflow: visible !important;
+          position: relative !important;
+        }
+
+        path {
+          stroke-width: 0.125rem !important;
+        }
+        .pie-label {
+          font-size: 0.625rem !important;
+          font-weight: 600 !important;
+          fill: #333 !important;
+          text-shadow: 0.0625rem 0.0625rem 0.125rem rgba(255, 255, 255, 0.8) !important;
+        }
+      }
+      .advanced-pie-legend-wrapper {
+        width: 100% !important;
+        max-width: 100% !important;
+        overflow: visible !important;
+        position: relative !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        text-align: center !important;
+
+          .advanced-pie-legend {
+          width: 100% !important;
+          max-width: 100% !important;
+          padding: 0.125rem 0.0625rem 0.0625rem 0.0625rem !important;
+          display: flex !important;
+          flex-direction: row !important;
+          flex-wrap: wrap !important;
+          gap: 0.25rem !important;
+          justify-content: center !important;
+          align-items: center !important;
+          overflow: visible !important;
+          position: relative !important;
+          text-align: center !important;
+          
+          .total-value {
+            padding-left: 0.0625rem !important;
+            font-size: 0.5625rem !important;
+          }
+          .legend-item {
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            font-size: 0.5625rem !important;
+            font-weight: 500 !important;
+            color: #333 !important;
+            padding: 0.125rem 0.25rem !important;
+            background: rgba(255,255,255,0.9) !important;
+            border-radius: 0.1875rem !important;
+            box-shadow: 0 0.0625rem 0.25rem rgba(0, 0, 0, 0.1) !important;
+            min-width: 4rem !important;
+            max-width: 6rem !important;
+            width: auto !important;
+            flex: 0 0 auto !important;
+            overflow: visible !important;
+            position: relative !important;
+            margin: 0.0625rem !important;
+            float: none !important;
+
+            .legend-label {
+              font-weight: 600 !important;
+              color: #333 !important;
+              margin-left: 0.125rem !important;
+              white-space: normal !important;
+              overflow: visible !important;
+              text-overflow: clip !important;
+              max-width: 2.5rem !important;
+              width: auto !important;
+              word-wrap: break-word !important;
+              text-align: center !important;
+            }
+            
+            .legend-value {
+              font-weight: 600 !important;
+              color: #555 !important;
+              margin-left: 0.125rem !important;
+              min-width: 0.75rem !important;
+              width: auto !important;
+              text-align: right !important;
+            }
+            
+            .legend-percent {
+              font-weight: 500 !important;
+              color: #666 !important;
+              margin-left: 0.125rem !important;
+              min-width: 1.125rem !important;
+              width: auto !important;
+              text-align: right !important;
+            }
+          }
+        }    
+      }
+
+    }
+    
+    .ngx-charts-bar-vertical {
+      width: 100% !important;
+      height: 100% !important;
+    
+      .x-axis {
+        .tick {
+          text {
+            font-size: 0.6875rem;
+            font-weight: 500;
+            fill: #555;
+          }
+        }
+      }
+
+      .y-axis {
+        .tick {
+          text {
+            font-size: 0.6875rem;
+            font-weight: 500;
+            fill: #555;
+          }
+        }
+      }
+
+      .x-axis-label, .y-axis-label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        fill: #333;
+      }
+
+      .legend {
+        .legend-title {
+          font-size: 0.875rem;
+          font-weight: 600;
+          color: #333;
+          margin-bottom: 0.5rem;
+        }
+
+        .legend-labels {
+          .legend-label {
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #555;
+            line-height: 1.4;
+            margin-bottom: 0.25rem;
+
+            .legend-label-text {
+              color: #333;
+              font-weight: 600;
+            }
+
+            .legend-label-color {
+              border-radius: 0.1875rem;
+              margin-right: 0.5rem;
+            }
+          }
+        }
+      }
+    }
+
+    .chart-container {
+      width: 100% !important;
+      height: 100% !important;
+      min-height: 21.875rem !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      overflow: visible !important;
+    }
+  
+    .ngx-charts-outer {
+      width: 100% !important;
+      height: 100% !important;
+      overflow: visible !important;
+    }
+
+
+      // Override ngx-charts legend styling for full text visibility
+    ngx-charts-legend {
+      width: 100%;
+      max-width: 100%;
+      
+      // Target the inner div that contains the legend text
+      > div {
+        width: 100%;
+        max-width: none;
+        white-space: normal;
+        word-wrap: break-word;
+        overflow: visible;
+      }
+      
+      // Ensure legend labels don't get cut off
+      .legend-label {
+        width: 100%;
+        max-width: none;
+        white-space: normal;
+        word-wrap: break-word;
+        overflow: visible;
+        
+        .legend-label-text {
+          max-width: none;
+          white-space: normal;
+          word-wrap: break-word;
+          overflow: visible;
+        }
+      }
+    }
+
+    }
+  
+
+          // Large screens (1200px and up)
+      @media (min-width: 1200px) {
+        .analytics-card {
+          .card-body {
+            min-height: 28.125rem;
+            padding: 2rem;
+          }
+        }
+        
+        ::ng-deep {
+          ngx-charts-advanced-pie-chart {
+            .advanced-pie,.chart {
+              max-width: 16rem;
+              max-height: 16rem;
+            }
+            
+            .advanced-pie-legend-wrapper {
+              max-width: 100%;
+            }
+          }
+          
+          .ngx-charts-bar-vertical {
+            .x-axis, .y-axis {
+              .tick text {
+                font-size: 0.75rem;
+              }
+            }
+          }
+        }
+      }
+
+          // Medium screens (768px to 1199px)
+      @media (min-width: 768px) and (max-width: 1199px) {
+        .analytics-card {
+          .card-body {
+            min-height: 25rem;
+            padding: 1.5rem;
+          }
+        }
+        
+        ::ng-deep {
+          ngx-charts-advanced-pie-chart {
+            .advanced-pie,.chart {
+              max-width: 14rem;
+              max-height: 14rem;
+            }
+            
+            .advanced-pie-legend-wrapper {
+              max-width: 100%;
+            }
+          }
+        }
+      }
+
+                 // Small screens (576px to 767px)
+      @media (min-width: 576px) and (max-width: 767px) {
+        .analytics-card {
+          .card-body {
+            min-height: 21.875rem;
+            padding: 1rem;
+          }
+        }
+        
+        ::ng-deep {
+          ngx-charts-advanced-pie-chart {
+            .advanced-pie,.chart {
+              max-width: 13rem;
+              max-height: 13rem;
+              padding: 0;
+            }
+            
+            .advanced-pie-legend-wrapper {
+              max-width: 14rem;
+              
+              .advanced-pie-legend {
+                gap: 0.125rem;
+                padding: 0.125rem 0.0625rem 0.0625rem 0.0625rem;
+                
+                .legend-item {
+                  font-size: 0.5rem !important;
+                  padding: 0.0625rem 0.125rem !important;
+                  min-width: 3rem !important;
+                  max-width: 4.5rem !important;
+                  width: auto !important;
+                  
+                  .legend-label {
+                    max-width: 2rem !important;
+                    width: auto !important;
+                    margin-left: 0.0625rem !important;
+                    white-space: normal !important;
+                    overflow: visible !important;
+                  }
+                  
+                  .legend-value {
+                    min-width: 0.625rem;
+                    margin-left: 0.0625rem;
+                  }
+                  
+                  .legend-percent {
+                    min-width: 0.875rem;
+                    margin-left: 0.0625rem;
+                  }
+                }
+              }
+            }
+          }
+          
+          .ngx-charts-bar-vertical {
+            .x-axis, .y-axis {
+              .tick text {
+                font-size: 0.625rem;
+              }
+            }
+            
+            .x-axis-label, .y-axis-label {
+              font-size: 0.6875rem;
+            }
+          }
+        }
+      }
+
+                 // Extra small screens (up to 575px)
+      @media (max-width: 575px) {
+        .analytics-card {
+          .card-body {
+            min-height: 18.75rem;
+            padding: 0.75rem;
+          }
+        }
+        
+        ::ng-deep {
+          ngx-charts-advanced-pie-chart {
+            .advanced-pie,.chart {
+              max-width: 10rem;
+              max-height: 10rem;
+              padding: 0;
+            }
+            
+            .advanced-pie-legend-wrapper {
+              max-width: 100%;
+              
+              .advanced-pie-legend {
+                flex-direction: column;
+                gap: 0.0625rem;
+                padding: 0.125rem 0.0625rem 0.0625rem 0.0625rem;
+                
+                .legend-item {
+                  font-size: 0.4375rem !important;
+                  padding: 0.03125rem 0.0625rem !important;
+                  min-width: 2.5rem !important;
+                  max-width: none !important;
+                  width: 100% !important;
+                  justify-content: space-between !important;
+                  
+                  .legend-label {
+                    max-width: none !important;
+                    width: auto !important;
+                    margin-left: 0.0625rem !important;
+                    flex: 1 !important;
+                    white-space: normal !important;
+                    overflow: visible !important;
+                  }
+                  
+                  .legend-value {
+                    min-width: 0.5rem;
+                    margin-left: 0.0625rem;
+                  }
+                  
+                  .legend-percent {
+                    min-width: 0.75rem;
+                    margin-left: 0.0625rem;
+                  }
+                }
+              }
+            }
+            
+            .pie-label {
+              font-size: 0.5rem !important;
+            }
+          }
+          
+          .ngx-charts-bar-vertical {
+            .x-axis, .y-axis {
+              .tick text {
+                font-size: 0.5625rem;
+              }
+            }
+            
+            .x-axis-label, .y-axis-label {
+              font-size: 0.625rem;
+            }
+            
+            .legend {
+              .legend-title {
+                font-size: 0.75rem;
+              }
+              
+              .legend-labels {
+                .legend-label {
+                  font-size: 0.625rem;
+                }
+              }
+            }
+          }
+        }
+      }
+
+    // Landscape orientation on mobile
+    @media (max-width: 767px) and (orientation: landscape) {
+      .analytics-card {
+        .card-body {
+          min-height: 15.625rem;
+        }
+      }
+      
+      ::ng-deep {
+        ngx-charts-advanced-pie-chart {
+          .advanced-pie,.chart {
+            max-height: 12.5rem;
+          }
+          
+          .advanced-pie-legend-wrapper {
+            .advanced-pie-legend {
+              flex-direction: row;
+              flex-wrap: wrap;
+            }
+          }
+        }
+      }
+    }
+  
+    @media (prefers-color-scheme: dark) {
+      .analytics-card {
+        .card-header {
+          background: rgb(0, 60, 110);
+        }
+      }
+  
+      ::ng-deep {
+        .ngx-charts-pie-chart,
+        .ngx-charts-bar-vertical {
+          .legend {
+            .legend-title {
+              color: #e2e8f0;
+            }
+  
+            .legend-labels {
+              .legend-label {
+                color: #cbd5e0;
+  
+                .legend-label-text {
+                  color: #e2e8f0;
+                }
+              }
+            }
+          }
+  
+          .x-axis, .y-axis {
+            .tick text {
+              fill: #cbd5e0;
+            }
+          }
+  
+          .x-axis-label, .y-axis-label {
+            fill: #e2e8f0;
+          }
+  
+          .pie-label {
+            fill: #e2e8f0;
+            text-shadow: 0.0625rem 0.0625rem 0.125rem rgba(0, 0, 0, 0.8);
+          }
+        }
+      }
+    }
+  }
+  
+  .chart-legend-container {
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 0.375rem;
+    margin-top: 1rem;
+    box-shadow: 0 0.0625rem 0.1875rem rgba(0, 0, 0, 0.1);
+  
+    .legend-item {
+      display: flex;
+      align-items: center;
+      margin-bottom: 0.5rem;
+      font-size: 0.8125rem;
+      font-weight: 500;
+  
+      .legend-color {
+        width: 1rem;
+        height: 1rem;
+        border-radius: 0.1875rem;
+        margin-right: 0.5rem;
+        border: 0.0625rem solid rgba(0, 0, 0, 0.1);
+      }
+  
+      .legend-text {
+        color: #333;
+        font-weight: 600;
+      }
+    }
+  }
+  
+  @media (prefers-contrast: high) {
+    .analytics-section {
+      ::ng-deep {
+        .ngx-charts-pie-chart,
+        .ngx-charts-bar-vertical {
+          .legend {
+            .legend-labels {
+              .legend-label {
+                .legend-label-text {
+                  font-weight: 700;
+                  color: #000;
+                }
+              }
+            }
+  
+            .x-axis, .y-axis {
+              .tick text {
+                font-weight: 700;
+                fill: #000;
+              }
+            }
+  
+            .x-axis-label, .y-axis-label {
+              font-weight: 700;
+              fill: #000;
+            }
+          }
+        }
+      }
+    }
+  }
