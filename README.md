@@ -1,76 +1,64 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-
-export interface QuickLinkData {
-  searchName: string;
-  searchParameters: any;
-}
-
-export interface QuickLink {
-  id: string;
-  name: string;
-  description: string;
-  searchParameters: any;
-  type: string;
-  createdAt: string;
-}
-
-@Component({
-  selector: 'app-quick-link-dialog',
-  standalone: true,
-  imports: [
-    CommonModule,
-    ReactiveFormsModule
-  ],
-  templateUrl: './quick-link-dialog.component.html',
-  styleUrls: ['./quick-link-dialog.component.scss']
-})
-export class QuickLinkDialogComponent {
-  @Input() data!: QuickLinkData;
-  @Output() saveQuickLink = new EventEmitter<QuickLink>();
-  @Output() cancelDialog = new EventEmitter<void>();
+<div class="quick-link-dialog">
+  <h2 class="dialog-title">Save Quick Link Search</h2>
   
-  quickLinkForm: FormGroup;
+  <form [formGroup]="quickLinkForm" (ngSubmit)="onSave()">
+    <div class="dialog-content">
+      <div class="form-content">
+        <div class="form-field">
+          <label class="form-label">Search Name *</label>
+          <input type="text" class="form-input" formControlName="searchName" placeholder="Enter a name for this search">
+          <div class="error-message" *ngIf="quickLinkForm.get('searchName')?.hasError('required')">
+            Search name is required
+          </div>
+          <div class="error-message" *ngIf="quickLinkForm.get('searchName')?.hasError('minlength')">
+            Search name must be at least 3 characters
+          </div>
+          <div class="error-message" *ngIf="quickLinkForm.get('searchName')?.hasError('maxlength')">
+            Search name must not exceed 50 characters
+          </div>
+        </div>
 
-  constructor(private fb: FormBuilder) {
-    this.quickLinkForm = this.fb.group({
-      searchName: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(50)]],
-      description: ['', [Validators.maxLength(200)]]
-    });
-  }
+        <div class="form-field">
+          <label class="form-label">Description (Optional)</label>
+          <textarea class="form-textarea" formControlName="description" placeholder="Enter a description for this search" rows="3"></textarea>
+          <div class="error-message" *ngIf="quickLinkForm.get('description')?.hasError('maxlength')">
+            Description must not exceed 200 characters
+          </div>
+        </div>
 
-  onCancel(): void {
-    this.cancelDialog.emit();
-  }
+        <div class="search-preview">
+          <h4>Search Parameters Preview:</h4>
+          <div class="param-item" *ngIf="data.searchParameters.company">
+            <strong>Company:</strong> {{data.searchParameters.company}}
+          </div>
+          <div class="param-item" *ngIf="data.searchParameters.tin">
+            <strong>TIN:</strong> {{data.searchParameters.tin}}
+          </div>
+          <div class="param-item" *ngIf="data.searchParameters.countries && data.searchParameters.countries.length > 0">
+            <strong>Countries:</strong> {{data.searchParameters.countries.join(', ')}}
+          </div>
+          <div class="param-item" *ngIf="data.searchParameters.status && data.searchParameters.status.length > 0">
+            <strong>Status:</strong> {{data.searchParameters.status.join(', ')}}
+          </div>
+          <div class="param-item" *ngIf="data.searchParameters.updated_date?.start || data.searchParameters.updated_date?.end">
+            <strong>Updated Date Range:</strong> 
+            {{data.searchParameters.updated_date?.start ? (data.searchParameters.updated_date.start | date) : 'Any'}} - 
+            {{data.searchParameters.updated_date?.end ? (data.searchParameters.updated_date.end | date) : 'Any'}}
+          </div>
+          <div class="param-item" *ngIf="data.searchParameters.approved_date?.start || data.searchParameters.approved_date?.end">
+            <strong>Approved Date Range:</strong> 
+            {{data.searchParameters.approved_date?.start ? (data.searchParameters.approved_date.start | date) : 'Any'}} - 
+            {{data.searchParameters.approved_date?.end ? (data.searchParameters.approved_date.end | date) : 'Any'}}
+          </div>
+        </div>
+      </div>
+    </div>
 
-  onSave(): void {
-    if (this.quickLinkForm.valid) {
-      const quickLink: QuickLink = {
-        id: Date.now().toString(),
-        name: this.quickLinkForm.get('searchName')?.value,
-        description: this.quickLinkForm.get('description')?.value || '',
-        searchParameters: this.data.searchParameters,
-        type: 'company',
-        createdAt: new Date().toISOString()
-      };
-
-      this.saveQuickLink.emit(quickLink);
-    }
-  }
-
-  getErrorMessage(fieldName: string): string {
-    const field = this.quickLinkForm.get(fieldName);
-    if (field?.hasError('required')) {
-      return `${fieldName.charAt(0).toUpperCase() + fieldName.slice(1)} is required`;
-    }
-    if (field?.hasError('minlength')) {
-      return `${fieldName.charAt(0).toUpperCase() + fieldName.slice(1)} must be at least ${field.errors?.['minlength'].requiredLength} characters`;
-    }
-    if (field?.hasError('maxlength')) {
-      return `${fieldName.charAt(0).toUpperCase() + fieldName.slice(1)} must not exceed ${field.errors?.['maxlength'].requiredLength} characters`;
-    }
-    return '';
-  }
-}
-
+    <div class="dialog-actions">
+      <button type="button" class="btn btn-secondary" (click)="onCancel()">Cancel</button>
+      <button type="button" class="btn btn-primary" (click)="onSave()" [disabled]="!quickLinkForm.valid">
+        Save Quick Link
+      </button>
+    </div>
+  </form>
+</div>
