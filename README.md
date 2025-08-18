@@ -1,24 +1,70 @@
-Hotlist Search Items can be customizable
-To clarify, users should theoretically be able to save their search parameters as a custom search item to be able to search on from AEO Profile, Company Search or MRA Request Company Search
-This is to be stored in local storage for now
-Make a way for a user to save searches as a hotlist search item
-Create a form for users to save their quick link searches
-Name 
-Search Parameters as needed
-Adding a button to autofill the form
-MRA Request Search Screen 
-Company Search Screen 
-AEO Profile Screen 
-Phase 1: 
-Add a Button for Company Search to Add Search Parameters 
-Create a form for users to save their quick link searches for Company Search
-Store the results in localStorage
-Phase 2
-Add button for MRA Request and AEO Profile 
-Make the form to acommodate with MRA Request and AEO Profile "Search"
-Phase 3
-Users can define different sections maybe? 
-Data structure of hot list search item is located in main-view.types, under HotlistSearchEntry
-Frontend Developer 
-ferris
-currently working on
+                      <div class="add-search-params-section">
+                          <button mat-stroked-button color="accent" class="add-search-params-btn" (click)="addMRASearchParameters()">
+                              <mat-icon>add_circle</mat-icon>
+                              Add Search Parameters
+                          </button>
+                      </div>
+
+
+
+
+    .add-search-params-section {
+      display: flex;
+      justify-content: center;
+      margin: 1rem 0;
+      width: 100%;
+    }
+
+    .add-search-params-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1.5rem;
+      font-weight: 500;
+      border-radius: 8px;
+      transition: all 0.3s ease;
+      
+      &:hover {
+        background-color: rgba(255, 64, 129, 0.1);
+        border-color: #ff4081;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+      
+      mat-icon {
+        font-size: 1.2rem;
+        width: 1.2rem;
+        height: 1.2rem;
+      }
+    }
+
+
+
+
+    	addCompanySearchParameters() {
+		// This method can be used to add additional search parameters
+		// For now, it will open a dialog or expand the search form
+		console.log('Adding company search parameters...');
+		// You can implement additional logic here such as:
+		// - Opening a dialog with more search options
+		// - Expanding the search form with additional fields
+		// - Adding dynamic search criteria
+	}
+
+	addMRASearchParameters() {
+		// This method can be used to add additional search parameters for MRA requests
+		// For now, it will open a dialog or expand the search form
+		console.log('Adding MRA request search parameters...');
+		// You can implement additional logic here such as:
+		// - Opening a dialog with more search options
+		// - Expanding the search form with additional fields
+		// - Adding dynamic search criteria
+	}
+
+
+
+
+
+
+
+ 
