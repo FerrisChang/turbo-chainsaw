@@ -1,51 +1,71 @@
-.quick-link-dialog {
-  min-width: 500px;
-  max-width: 600px;
+import { Component, Inject } from '@angular/core';
+import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { MAT_DIALOG_DATA } from '@angular/material/dialog';
+
+export interface QuickLinkData {
+  searchName: string;
+  searchParameters: any;
 }
 
-.form-content {
-  padding: 16px 0;
+export interface QuickLink {
+  id: string;
+  name: string;
+  description: string;
+  searchParameters: any;
+  type: string;
+  createdAt: string;
 }
 
-.full-width {
-  width: 100%;
-  margin-bottom: 16px;
-}
+@Component({
+  selector: 'app-quick-link-dialog',
+  templateUrl: './quick-link-dialog.component.html',
+  styleUrls: ['./quick-link-dialog.component.scss']
+})
+export class QuickLinkDialogComponent {
+  quickLinkForm: FormGroup;
 
-.search-preview {
-  margin-top: 24px;
-  padding: 16px;
-  background-color: #f5f5f5;
-  border-radius: 8px;
-  border: 1px solid #e0e0e0;
-
-  h4 {
-    margin: 0 0 16px 0;
-    color: #333;
-    font-size: 16px;
-    font-weight: 500;
+  constructor(
+    private fb: FormBuilder,
+    @Inject(MAT_DIALOG_DATA) public data: QuickLinkData
+  ) {
+    this.quickLinkForm = this.fb.group({
+      searchName: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(50)]],
+      description: ['', [Validators.maxLength(200)]]
+    });
   }
 
-  .param-item {
-    margin-bottom: 8px;
-    padding: 8px 12px;
-    background-color: white;
-    border-radius: 4px;
-    border-left: 3px solid #3f51b5;
-    
-    strong {
-      color: #3f51b5;
-      margin-right: 8px;
+  onCancel(): void {
+    // This will be handled by the parent component
+    console.log('Cancel clicked');
+  }
+
+  onSave(): void {
+    if (this.quickLinkForm.valid) {
+      const quickLink: QuickLink = {
+        id: Date.now().toString(),
+        name: this.quickLinkForm.get('searchName')?.value,
+        description: this.quickLinkForm.get('description')?.value || '',
+        searchParameters: this.data.searchParameters,
+        type: 'company',
+        createdAt: new Date().toISOString()
+      };
+
+      // This will be handled by the parent component
+      console.log('Quick link to save:', quickLink);
     }
   }
-}
 
-mat-dialog-actions {
-  padding: 16px 0;
-  margin: 0;
-}
-
-mat-dialog-content {
-  max-height: 70vh;
-  overflow-y: auto;
+  getErrorMessage(fieldName: string): string {
+    const field = this.quickLinkForm.get(fieldName);
+    if (field?.hasError('required')) {
+      return `${fieldName.charAt(0).toUpperCase() + fieldName.slice(1)} is required`;
+    }
+    if (field?.hasError('minlength')) {
+      return `${fieldName.charAt(0).toUpperCase() + fieldName.slice(1)} must be at least ${field.errors?.['minlength'].requiredLength} characters`;
+    }
+    if (field?.hasError('maxlength')) {
+      return `${fieldName.charAt(0).toUpperCase() + fieldName.slice(1)} must not exceed ${field.errors?.['maxlength'].requiredLength} characters`;
+    }
+    return '';
+  }
 }
