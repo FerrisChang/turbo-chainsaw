@@ -1,35 +1,20 @@
-hotListSearch(string: param) {
-    if (param === "VCs_Today") {
-    const yesterday = new Date();
-    yesterday.setDate(this.today.getDate() - 1);
-    const tomorrow = new Date();
-    tomorrow.setDate(this.today.getDate() - 2);
-    const queryParams = {
-      from: this.today,
-      to: this.tomorrow,
-    };
-    const url = this.router.createUrlTree(['/layout/search'], {
-      queryParams,
-      queryParamsHandling: 'merge',
-    });
-    this.router.navigateByUrl(url);
-    } else if (param === 'Steel_VCs') {
-      const queryParams = {
-        type: this.selectedVerifiableCredential,
-      };
-      const url = this.router.createUrlTree(['/layout/search'], {
-        queryParams,
-        queryParamsHandling: 'merge',
-      });
-      this.router.navigateByUrl(url);
-    } else if (param === 'Oil_&_Gas_VCs') {
-      const queryParams = {
-        type: this.selectedVerifiableCredential,
-      };
-      const url = this.router.createUrlTree(['/layout/search'], {
-        queryParams,
-        queryParamsHandling: 'merge',
-      });
-      this.router.navigateByUrl(url);
-    }
+
+
+.tab {
+  cursor: pointer;
+  padding: 8px 18px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid $app-layout-border-color;
+  
+  border-right: 1px solid #e0e0e0;
+  border-left: 1px solid #e0e0e0;
+  border-top: 1px solid #e0e0e0;
+  border-top-left-radius: 5px;
+  border-top-right-radius: 5px;
+  border-bottom: 3px solid #e0e0e0;
+
+  &.selected {
+    background-color: #f0f0f0;
+    border-bottom: 3px solid $app-primary;
   }
+}
